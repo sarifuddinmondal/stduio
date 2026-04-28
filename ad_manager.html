@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ad Manager | Ckart India</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body { background-color: #0f172a; color: white; font-family: 'Inter', sans-serif; }
+        .ad-card { transition: all 0.3s ease; }
+        .ad-card:hover { transform: translateY(-5px); border-color: #6366f1; }
+        /* Desktop Preview Styles */
+        #desktop-frame {
+            width: 100%;
+            height: 500px;
+            background: #1e293b;
+            border-radius: 12px;
+            position: relative;
+            overflow: hidden;
+            border: 8px solid #334155;
+        }
+        .preview-box {
+            position: absolute;
+            background: #000;
+            overflow: hidden;
+            border: 2px solid #6366f1;
+        }
+    </style>
+</head>
+<body class="p-6">
+
+    <div class="max-w-7xl mx-auto">
+        <div class="flex justify-between items-center mb-10">
+            <div>
+                <h1 class="text-3xl font-bold text-indigo-400">Ad Manager</h1>
+                <p class="text-slate-400">Manage and preview your live advertisements</p>
+            </div>
+            <a href="ad_studio.html" class="bg-indigo-600 hover:bg-indigo-700 px-5 py-2 rounded-lg font-bold flex items-center gap-2 transition">
+                <i data-lucide="plus-circle"></i> Create New Ad
+            </a>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            
+            <div class="lg:col-span-1 space-y-4">
+                <h2 class="text-xl font-semibold mb-4 flex items-center gap-2">
+                    <i data-lucide="list"></i> Active Ads
+                </h2>
+                <div id="ad-list" class="space-y-4 max-h-[700px] overflow-y-auto pr-2">
+                    <div class="text-slate-500 italic">Loading ads from database...</div>
+                </div>
+            </div>
+
+            <div class="lg:col-span-2">
+                <h2 class="text-xl font-semibold mb-4 flex items-center gap-2">
+                    <i data-lucide="monitor"></i> Desktop Preview (Live View)
+                </h2>
+                <div id="desktop-frame">
+                    <div class="p-10 opacity-20 select-none">
+                        <div class="h-8 w-48 bg-slate-700 rounded mb-6"></div>
+                        <div class="grid grid-cols-3 gap-4">
+                            <div class="h-32 bg-slate-800 rounded"></div>
+                            <div class="h-32 bg-slate-800 rounded"></div>
+                            <div class="h-32 bg-slate-800 rounded"></div>
+                        </div>
+                        <div class="h-40 w-full bg-slate-800 rounded mt-6"></div>
+                    </div>
+
+                    <div id="live-ad-preview" class="preview-box hidden">
+                        </div>
+                </div>
+                
+                <div class="mt-4 p-4 bg-slate-900 border border-slate-800 rounded-lg">
+                    <h3 class="text-sm font-bold text-slate-400 uppercase mb-2">Ad Details</h3>
+                    <div id="ad-info" class="text-xs space-y-1 text-slate-300">
+                        Select an ad to see details and preview.
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        // --- Supabase Config ---
+        const _supabaseUrl = "https://vkwxheddyagpjbsrovgh.supabase.co";
+        const _supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZrd3hoZWRkeWFncGpic3JvdmdoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUxNDM2NjEsImV4cCI6MjA5MDcxOTY2MX0.KN_JLY2owScvkGVy2inJIkEzW82_Qb2a1cavcRJFzlA";
+        const supabaseClient = supabase.createClient(_supabaseUrl, _supabaseKey);
+
+        let allAds = [];
+        let slideshowInterval = null;
+
+        // --- Fetch Ads ---
+        async function fetchAds() {
+            const { data, error } = await supabaseClient
+                .from('ads')
+                .select('*')
+                .order('created_at', { ascending: false });
+
+            if (error) {
+                console.error(error);
+                return;
+            }
+            allAds = data;
+            renderAdList();
+        }
+
+        // --- Render Ad List ---
+        function renderAdList() {
+            const listContainer = document.getElementById('ad-list');
+            listContainer.innerHTML = '';
+
+            if (allAds.length === 0) {
+                listContainer.innerHTML = '<div class="text-slate-600">No ads found in database.</div>';
+                return;
+            }
+
+            allAds.forEach(ad => {
+                const card = document.createElement('div');
+                card.className = "ad-card bg-slate-900 border border-slate-800 p-4 rounded-xl cursor-pointer";
+                card.onclick = () => showPreview(ad);
+
+                card.innerHTML = `
+                    <div class="flex justify-between items-start mb-2">
+                        <h3 class="font-bold text-indigo-300">${ad.ad_name}</h3>
+                        <button onclick="deleteAd(event, '${ad.id}')" class="text-slate-600 hover:text-red-500 transition">
+                            <i data-lucide="trash-2" class="w-4 h-4"></i>
+                        </button>
+                    </div>
+                    <div class="text-[10px] text-slate-500 space-y-1">
+                        <p>ID: ${ad.id.substring(0,8)}...</p>
+                        <p>Size: ${ad.ad_size || 'Responsive'}</p>
+                        <p>Pincodes: ${ad.pincodes ? ad.pincodes.join(', ') : 'All'}</p>
+                    </div>
+                `;
+                listContainer.appendChild(card);
+            });
+            lucide.createIcons();
+        }
+
+        // --- Delete Ad ---
+        async function deleteAd(event, id) {
+            event.stopPropagation();
+            if (!confirm("Are you sure you want to delete this ad?")) return;
+
+            const { error } = await supabaseClient.from('ads').delete().eq('id', id);
+            if (error) alert("Error deleting ad");
+            else fetchAds();
+        }
+
+        // --- Preview Logic ---
+        function showPreview(ad) {
+            const previewBox = document.getElementById('live-ad-preview');
+            const adInfo = document.getElementById('ad-info');
+            previewBox.classList.remove('hidden');
+
+            // Set Info
+            adInfo.innerHTML = `
+                <p><strong>Name:</strong> ${ad.ad_name}</p>
+                <p><strong>Position:</strong> ${ad.ad_position}</p>
+                <p><strong>Duration:</strong> ${ad.ad_duration}s</p>
+                <p><strong>Size:</strong> ${ad.ad_size}</p>
+            `;
+
+            // Parse Cells
+            let cells = [];
+            try {
+                cells = JSON.parse(ad.ad_content_html);
+            } catch (e) {
+                console.error("Content Parse Error");
+                return;
+            }
+
+            // Apply Size and Position
+            const sizeParts = ad.ad_size ? ad.ad_size.split(' ') : ['50%', '50%'];
+            previewBox.style.width = sizeParts[0] || '300px';
+            previewBox.style.height = sizeParts[1] || '200px';
+            
+            applyPositionStyle(previewBox, ad.ad_position);
+
+            // Slideshow Logic
+            if (slideshowInterval) clearInterval(slideshowInterval);
+            let currentIdx = 0;
+
+            const renderCell = (idx) => {
+                const cell = cells[idx];
+                previewBox.innerHTML = '';
+                if (!cell) return;
+
+                if (cell.type === 'html') {
+                    previewBox.innerHTML = cell.content;
+                } else if (cell.type === 'image') {
+                    previewBox.innerHTML = `<img src="${cell.content}" class="w-full h-full object-cover">`;
+                } else if (cell.type === 'video') {
+                    previewBox.innerHTML = `<video src="${cell.content}" autoplay muted loop class="w-full h-full object-cover"></video>`;
+                }
+            };
+
+            renderCell(0);
+            if (cells.length > 1) {
+                slideshowInterval = setInterval(() => {
+                    currentIdx = (currentIdx + 1) % cells.length;
+                    renderCell(currentIdx);
+                }, (ad.ad_duration || 5) * 1000);
+            }
+        }
+
+        function applyPositionStyle(el, pos) {
+            // Reset styles
+            el.style.top = el.style.bottom = el.style.left = el.style.right = el.style.transform = 'unset';
+            
+            switch(pos) {
+                case 'center':
+                    el.style.top = '50%'; el.style.left = '50%';
+                    el.style.transform = 'translate(-50%, -50%)';
+                    break;
+                case 'top_center':
+                    el.style.top = '10px'; el.style.left = '50%';
+                    el.style.transform = 'translateX(-50%)';
+                    break;
+                case 'bottom_center':
+                    el.style.bottom = '10px'; el.style.left = '50%';
+                    el.style.transform = 'translateX(-50%)';
+                    break;
+                case 'bottom_right':
+                    el.style.bottom = '10px'; el.style.right = '10px';
+                    break;
+                case 'fullscreen':
+                    el.style.top = '0'; el.style.left = '0';
+                    el.style.width = '100%'; el.style.height = '100%';
+                    break;
+                default:
+                    el.style.top = '50%'; el.style.left = '50%';
+                    el.style.transform = 'translate(-50%, -50%)';
+            }
+        }
+
+        // Initial Load
+        fetchAds();
+    </script>
+</body>
+</html>
