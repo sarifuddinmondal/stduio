@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Studio Launcher</title>
+    <title>Ckart India | Dashboard Launcher</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <style>
@@ -19,7 +19,12 @@
             font-family: 'Segoe UI', sans-serif;
         }
 
-        .studio-launcher {
+        .launcher-container {
+            display: flex;
+            gap: 50px; /* দুটি আইকনের মাঝের দূরত্ব */
+        }
+
+        .item-launcher {
             text-align: center;
         }
 
@@ -27,30 +32,47 @@
         .icon-circle {
             width: 100px;
             height: 100px;
-            background: linear-gradient(45deg, #f43f5e, #8b5cf6);
-            border-radius: 30%; /* রাউন্ডেড স্কয়ার */
+            border-radius: 30%; /* রাউন্ডেড স্কয়ার */
             display: flex;
             justify-content: center;
             align-items: center;
             color: white;
-            font-size: 50px;
+            font-size: 45px;
             text-decoration: none;
             transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            box-shadow: 0 10px 30px rgba(244, 63, 94, 0.3);
             cursor: pointer;
         }
 
-        /* হোভার করলে আইকন বড় হবে এবং জ্বলবে */
+        /* Studio আইকন কালার */
+        .studio-btn {
+            background: linear-gradient(45deg, #f43f5e, #8b5cf6);
+            box-shadow: 0 10px 30px rgba(244, 63, 94, 0.3);
+        }
+
+        /* Manager আইকন কালার */
+        .manager-btn {
+            background: linear-gradient(45deg, #0ea5e9, #6366f1);
+            box-shadow: 0 10px 30px rgba(14, 165, 233, 0.3);
+        }
+
+        /* হোভার ইফেক্ট */
         .icon-circle:hover {
             transform: scale(1.15) rotate(10deg);
-            box-shadow: 0 15px 45px rgba(139, 92, 246, 0.6);
             border-radius: 50%;
+        }
+
+        .studio-btn:hover {
+            box-shadow: 0 15px 45px rgba(139, 92, 246, 0.6);
+        }
+
+        .manager-btn:hover {
+            box-shadow: 0 15px 45px rgba(99, 102, 241, 0.6);
         }
 
         .label {
             margin-top: 15px;
             color: #94a3b8;
-            font-size: 14px;
+            font-size: 12px;
             letter-spacing: 2px;
             font-weight: bold;
             text-transform: uppercase;
@@ -59,11 +81,22 @@
 </head>
 <body>
 
-    <div class="studio-launcher">
-        <a href="ad_studio.html" class="icon-circle" title="Open Ad Studio">
-            <i class="fas fa-wand-magic-sparkles"></i>
-        </a>
-        <div class="label">Studio</div>
+    <div class="launcher-container">
+        
+        <div class="item-launcher">
+            <a href="ad_studio.html" class="icon-circle studio-btn" title="Open Ad Studio">
+                <i class="fas fa-wand-magic-sparkles"></i>
+            </a>
+            <div class="label">Studio</div>
+        </div>
+
+        <div class="item-launcher">
+            <a href="ad_manager.html" class="icon-circle manager-btn" title="Open Ad Manager">
+                <i class="fas fa-tasks"></i>
+            </a>
+            <div class="label">Manager</div>
+        </div>
+
     </div>
 
 </body>
