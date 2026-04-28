@@ -3,202 +3,25 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin | Ad Studio</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="https://cdn.jsdelivr.net/npm/interactjs/dist/interact.min.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+    <title>Ad Studio</title>
     <style>
-        body { font-family: 'Plus Jakarta Sans', sans-serif; background: #f1f5f9; }
-        .editor-container::-webkit-scrollbar, .cells-wrapper-container::-webkit-scrollbar { display: none; }
-        .editor-container, .cells-wrapper-container { -ms-overflow-style: none; scrollbar-width: none; }
-        .cell-card { background: white; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1); }
-        #monitor-view {
-            background-color: #333;
-            border: 10px solid #111;
-            border-radius: 20px;
-            padding: 20px;
-            box-shadow: 0 0 20px rgba(0,0,0,0.5);
-            margin: 1rem; /* Replaced percentage for better control */
-            position: relative;
-            flex-grow: 1; /* Allow monitor view to grow */
-        }
-        #workspace-placeholder { color: #777; }
-        .resizable-draggable {
-            position: absolute;
-            border: 2px dashed #FFF;
-            border-radius: 5px;
-            touch-action: none;
-            box-sizing: border-box;
-        }
-        .frame-header {
-            background: rgba(0,0,0,0.5);
-            color: white;
-            padding: 5px;
-            cursor: move;
-            font-size: 12px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        #preview-outer-container {
-             background-color: #4a5568; /* a neutral dark color */
-        }
-        #preview-container {
-             background-color: #2d3748; /* a darker shade for the screen */
-             border: 10px solid #1a202c;
-             border-radius: 1rem;
-        }
-        .ad-preview-container {
-            background: #000;
-            overflow: hidden;
-            position: relative;
-        }
-        .ad-preview-container-html {
-            width: 100%;
-            height: 100%;
-        }
+        /* Add your styles here */
     </style>
 </head>
-<body class="overflow-hidden">
-
-    <div class="flex h-screen">
-        <!-- Sidebar (Toolbar) -->
-        <aside class="w-80 bg-white border-r border-slate-200 p-6 flex flex-col h-full shrink-0">
-            <div class="mb-4 pb-4 border-b">
-                <h1 class="text-2xl font-bold text-slate-800">Ad Studio</h1>
-                <a href="ad_manager.html" class="text-indigo-600 hover:underline text-sm">← View All Ads</a>
-            </div>
-            <!-- View Toggle Buttons -->
-            <div class="flex gap-2 mb-6">
-                <button type="button" id="workplace-toggle" class="flex-1 py-2 rounded-lg font-bold text-sm border border-indigo-600 text-indigo-600 bg-white hover:bg-indigo-50 active:bg-indigo-100 transition-all">Workplace</button>
-                <button type="button" id="liveview-toggle" class="flex-1 py-2 rounded-lg font-bold text-sm border border-slate-400 text-slate-600 bg-white hover:bg-slate-50 active:bg-slate-100 transition-all">Live View</button>
-            </div>
-            <form id="ad-form" class="space-y-4 flex-grow overflow-y-auto editor-container pr-2">
-                 <input type="hidden" id="ad-id">
-                <div>
-                    <label class="block text-xs font-bold text-slate-500 mb-1 ml-2">PROJECT NAME</label>
-                    <input type="text" id="ad_name" placeholder="e.g. Festive Bonanza" class="w-full p-3 border rounded-lg outline-none focus:ring-2 focus:ring-indigo-200 transition-all" required>
-                </div>
-                <div>
-                    <label class="block text-xs font-bold text-slate-500 mb-1 ml-2">SERIAL NUMBER (ORDER)</label>
-                    <input type="number" id="serial_number" placeholder="e.g., 1" class="w-full p-3 border rounded-lg outline-none focus:ring-2 focus:ring-indigo-200 transition-all">
-                </div>
-                <div>
-                    <label class="block text-xs font-bold text-slate-500 mb-1 ml-2">TARGET PINCODES</label>
-                    <textarea id="pincodes" rows="2" class="w-full p-3 border rounded-lg outline-none focus:ring-2 focus:ring-indigo-200 transition-all" placeholder="e.g., 741401, 741404"></textarea>
-                </div>
-                <div class="pt-4 border-t space-y-4">
-                    <label class="block text-xs font-bold text-slate-500 ml-2">LIVE DISPLAY SETTINGS</label>
-                    <div>
-                        <label for="ad_duration" class="block text-sm font-medium text-slate-600 mb-1">Duration per Item (s)</label>
-                        <input type="number" id="ad_duration" placeholder="e.g., 5" class="w-full p-3 border rounded-lg outline-none focus:ring-2 focus:ring-indigo-200 transition-all">
-                        <p class="text-xs text-slate-400 mt-1">For slideshows. Leave blank for default.</p>
-                    </div>
-                    <div>
-                        <label for="ad_preset" class="block text-sm font-medium text-slate-600 mb-1">Display Preset</label>
-                        <select id="ad_preset" class="w-full p-3 border rounded-lg outline-none focus:ring-2 focus:ring-indigo-200 transition-all bg-white">
-                            <option value="custom">-- Select a Preset --</option>
-                            <option value="center_window">Center Window (Default)</option>
-                            <option value="fullscreen">Fullscreen</option>
-                            <option value="bottom_banner">Bottom Banner</option>
-                            <option value="top_banner">Top Banner</option>
-                            <option value="bottom_right_popup">Bottom-Right Popup</option>
-                        </select>
-                    </div>
-                     <div class="grid grid-cols-2 gap-3">
-                        <div>
-                            <label for="ad_width" class="block text-sm font-medium text-slate-600 mb-1">Width</label>
-                            <input type="text" id="ad_width" placeholder="e.g., 70%" class="w-full p-3 border rounded-lg outline-none focus:ring-2 focus:ring-indigo-200 transition-all">
-                        </div>
-                        <div>
-                            <label for="ad_height" class="block text-sm font-medium text-slate-600 mb-1">Height</label>
-                            <input type="text" id="ad_height" placeholder="e.g., 60%" class="w-full p-3 border rounded-lg outline-none focus:ring-2 focus:ring-indigo-200 transition-all">
-                        </div>
-                    </div>
-                    <p class="text-xs text-slate-400 -mt-2">Use valid CSS units (e.g., '150px', '80%').</p>
-                    <div>
-                        <label for="ad_position" class="block text-sm font-medium text-slate-600 mb-1">Position (Advanced)</label>
-                        <select id="ad_position" class="w-full p-3 border rounded-lg outline-none focus:ring-2 focus:ring-indigo-200 transition-all bg-white">
-                            <option value="center">Center</option>
-                            <option value="fullscreen">Fullscreen</option>
-                            <option value="top_center">Top Center</option>
-                            <option value="bottom_center">Bottom Center</option>
-                            <option value="top_left">Top Left</option>
-                            <option value="top_right">Top Right</option>
-                            <option value="bottom_left">Bottom Left</option>
-                            <option value="bottom_right">Bottom Right</option>
-                            <option value="center_left">Center Left</option>
-                            <option value="center_right">Center Right</option>
-                        </select>
-                    </div>
-                </div>
-            </form>
-        </aside>
-
-        <!-- Main Content -->
-        <main id="main-content" class="flex-1 grid grid-cols-2 divide-x divide-slate-300 overflow-hidden">
-            <!-- Left Pane: Workspace -->
-            <div id="workspace-pane" class="flex flex-col overflow-hidden">
-                 <!-- Top Bar -->
-                <div class="flex justify-end items-center p-4 bg-white border-b shadow-sm shrink-0">
-                    <button type="submit" form="ad-form" id="save-btn" class="bg-indigo-600 text-white font-bold py-2 px-3 rounded-lg hover:bg-indigo-700 transition-all active:scale-95 text-sm">Save</button>
-                </div>
-
-                <!-- Workspace -->
-                <div id="monitor-view">
-                    <div id="cells-wrapper" class="w-full h-full relative overflow-hidden">
-                        <p id="workspace-placeholder" class="text-slate-400 w-full text-center mt-10">Your ad cells will appear here.</p>
-                    </div>
-                </div>
-                
-                <!-- Bottom Action Bar -->
-                <div class="bg-white border-t p-4 flex flex-col items-center shrink-0 shadow-inner">
-                    <label class="text-xs font-bold text-slate-500 mb-3">ADD CONTENT TO WORKSPACE</label>
-                    <div class="flex items-center gap-3">
-                        <button type="button" id="add-html-btn" class="p-3 bg-slate-100 rounded-lg font-semibold text-slate-700 transition-all text-sm shadow-sm hover:shadow-md hover:bg-slate-200 border">+ Add HTML</button>
-                        <div>
-                            <input type="file" id="image-upload-input" class="hidden" accept="image/*">
-                            <button type="button" onclick="document.getElementById('image-upload-input').click()" class="p-3 bg-slate-100 rounded-lg font-semibold text-slate-700 transition-all text-sm shadow-sm hover:shadow-md hover:bg-slate-200 border">+ Add Image</button>
-                        </div>
-                        <div>
-                            <input type="file" id="video-upload-input" class="hidden" accept="video/*">
-                            <button type="button" onclick="document.getElementById('video-upload-input').click()" class="p-3 bg-slate-100 rounded-lg font-semibold text-slate-700 transition-all text-sm shadow-sm hover:shadow-md hover:bg-slate-200 border">+ Add Video</button>
-                        </div>
-                        <button type="button" id="add-frame-btn" class="p-3 bg-slate-100 rounded-lg font-semibold text-slate-700 transition-all text-sm shadow-sm hover:shadow-md hover:bg-slate-200 border">+ Add Frame</button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Right Pane: Live Preview -->
-            <div id="preview-outer-container" class="flex flex-col overflow-hidden">
-                 <!-- Top Bar for Preview -->
-                <div class="flex justify-between items-center p-4 bg-white border-b shadow-sm shrink-0">
-                    <h2 class="text-xl font-bold text-slate-800">Live Preview</h2>
-                    <div class="flex items-center gap-2">
-                        <select id="preview-device-select" class="w-full p-2 border rounded-lg outline-none focus:ring-2 focus:ring-indigo-200 transition-all bg-white text-sm">
-                            <option value="responsive">Responsive</option>
-                            <option value="mobile">Mobile (375x667)</option>
-                            <option value="desktop">Desktop (1024x768)</option>
-                        </select>
-                    </div>
-                </div>
-
-                <!-- Preview Screen -->
-                <div class="flex-grow p-4 flex items-center justify-center">
-                    <div id="preview-container" class="w-full h-full relative flex items-center justify-center shadow-2xl">
-                         <div id="ad-container-wrapper" class="relative">
-                            <!-- The ad-preview-container will be inserted here by JS -->
-                            <!-- Floating Save Button for Live View -->
-                            <button id="liveview-save-btn" class="hidden absolute top-4 right-4 z-20 bg-indigo-600 text-white font-bold py-2 px-4 rounded-lg shadow-lg hover:bg-indigo-700 transition-all">Save Position/Size</button>
-                            <button id="liveview-add-frame-btn" class="absolute top-4 left-4 z-20 bg-slate-700 text-white font-bold py-2 px-4 rounded-lg shadow-lg hover:bg-slate-800 transition-all">+ Add Frame</button>
-                         </div>
-                    </div>
-                </div>
-            </div>
-        </main>
+<body>
+    <div id="top-bar">
+        <select id="device-selector">
+            <option value="mobile">Mobile</option>
+            <option value="tablet">Tablet</option>
+            <option value="desktop">Desktop</option>
+        </select>
+        <button id="save-btn">Save</button> <!-- Visible Save button added here -->
     </div>
-    
-    <script src="ad_studio.js"></script>
+    <div id="content">
+        <!-- Your content goes here -->
+    </div>
+    <script>
+        // Your JavaScript code goes here
+    </script>
 </body>
 </html>
