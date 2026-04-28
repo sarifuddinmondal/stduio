@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Studio Launcher</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #0f172a; /* ডার্ক ব্যাকগ্রাউন্ড */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;
+            font-family: 'Segoe UI', sans-serif;
+        }
+
+        .studio-launcher {
+            text-align: center;
+        }
+
+        /* আইকন ডিজাইন */
+        .icon-circle {
+            width: 100px;
+            height: 100px;
+            background: linear-gradient(45deg, #f43f5e, #8b5cf6);
+            border-radius: 30%; /* রাউন্ডেড স্কয়ার */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            font-size: 50px;
+            text-decoration: none;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            box-shadow: 0 10px 30px rgba(244, 63, 94, 0.3);
+            cursor: pointer;
+        }
+
+        /* হোভার করলে আইকন বড় হবে এবং জ্বলবে */
+        .icon-circle:hover {
+            transform: scale(1.15) rotate(10deg);
+            box-shadow: 0 15px 45px rgba(139, 92, 246, 0.6);
+            border-radius: 50%;
+        }
+
+        .label {
+            margin-top: 15px;
+            color: #94a3b8;
+            font-size: 14px;
+            letter-spacing: 2px;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="studio-launcher">
+        <a href="ad_studio.html" class="icon-circle" title="Open Ad Studio">
+            <i class="fas fa-wand-magic-sparkles"></i>
+        </a>
+        <div class="label">Studio</div>
+    </div>
+
+</body>
+</html>
