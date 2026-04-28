@@ -27,6 +27,8 @@
             overflow: hidden;
             border: 2px solid #6366f1;
         }
+        /* Copy Button Animation */
+        .copy-btn:active { transform: scale(0.95); }
     </style>
 </head>
 <body class="p-6">
@@ -73,7 +75,14 @@
                 </div>
                 
                 <div class="mt-4 p-4 bg-slate-900 border border-slate-800 rounded-lg">
-                    <h3 class="text-sm font-bold text-slate-400 uppercase mb-2">Ad Details</h3>
+                    <div class="flex justify-between items-center mb-2">
+                        <h3 class="text-sm font-bold text-slate-400 uppercase">Ad Details</h3>
+                        <div id="media-url-action" class="hidden">
+                            <button onclick="copyMediaUrl()" class="copy-btn flex items-center gap-2 bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 px-3 py-1 rounded text-xs hover:bg-indigo-500 hover:text-white transition">
+                                <i data-lucide="copy" class="w-3 h-3"></i> Copy Live Media URL
+                            </button>
+                        </div>
+                    </div>
                     <div id="ad-info" class="text-xs space-y-1 text-slate-300">
                         Select an ad to see details and preview.
                     </div>
@@ -91,6 +100,7 @@
 
         let allAds = [];
         let slideshowInterval = null;
+        let currentAdUrl = ""; // To store current ad's link
 
         // --- Fetch Ads ---
         async function fetchAds() {
@@ -117,14 +127,18 @@
                 return;
             }
 
-            allAds.forEach(ad => {
+            allAds.forEach((ad, index) => {
                 const card = document.createElement('div');
                 card.className = "ad-card bg-slate-900 border border-slate-800 p-4 rounded-xl cursor-pointer";
                 card.onclick = () => showPreview(ad);
 
+                // Serial Number যোগ করা হয়েছে: (index + 1)
                 card.innerHTML = `
                     <div class="flex justify-between items-start mb-2">
-                        <h3 class="font-bold text-indigo-300">${ad.ad_name}</h3>
+                        <div class="flex items-center gap-2">
+                            <span class="bg-indigo-600 text-[10px] px-2 py-0.5 rounded text-white font-bold">${index + 1}</span>
+                            <h3 class="font-bold text-indigo-300">${ad.ad_name}</h3>
+                        </div>
                         <button onclick="deleteAd(event, '${ad.id}')" class="text-slate-600 hover:text-red-500 transition">
                             <i data-lucide="trash-2" class="w-4 h-4"></i>
                         </button>
@@ -154,14 +168,21 @@
         function showPreview(ad) {
             const previewBox = document.getElementById('live-ad-preview');
             const adInfo = document.getElementById('ad-info');
+            const actionDiv = document.getElementById('media-url-action');
+            
             previewBox.classList.remove('hidden');
+            actionDiv.classList.remove('hidden');
 
-            // Set Info
+            // Media URL জেনারেট করা (আপনার মেইন ওয়েবসাইট লিংকের সাথে অ্যাড আইডি)
+            currentAdUrl = `https://shop-2ca98.web.app/ad-view?id=${ad.id}`;
+
+            // Set Info (Details)
             adInfo.innerHTML = `
                 <p><strong>Name:</strong> ${ad.ad_name}</p>
                 <p><strong>Position:</strong> ${ad.ad_position}</p>
                 <p><strong>Duration:</strong> ${ad.ad_duration}s</p>
                 <p><strong>Size:</strong> ${ad.ad_size}</p>
+                <p class="text-indigo-400 mt-2"><strong>Live URL:</strong> ${currentAdUrl}</p>
             `;
 
             // Parse Cells
@@ -173,10 +194,14 @@
                 return;
             }
 
-            // Apply Size and Position
-            const sizeParts = ad.ad_size ? ad.ad_size.split(' ') : ['50%', '50%'];
-            previewBox.style.width = sizeParts[0] || '300px';
-            previewBox.style.height = sizeParts[1] || '200px';
+            // --- Ad Size Fix (Database data usage) ---
+            const sizeParts = ad.ad_size ? ad.ad_size.split(' ') : ['300', '250'];
+            // যদি ভ্যালুতে px/ % না থাকে তবে px যোগ করবে
+            const width = sizeParts[0].match(/[a-z%]/) ? sizeParts[0] : sizeParts[0] + 'px';
+            const height = sizeParts[1].match(/[a-z%]/) ? sizeParts[1] : sizeParts[1] + 'px';
+            
+            previewBox.style.width = width;
+            previewBox.style.height = height;
             
             applyPositionStyle(previewBox, ad.ad_position);
 
@@ -205,6 +230,12 @@
                     renderCell(currentIdx);
                 }, (ad.ad_duration || 5) * 1000);
             }
+        }
+
+        // --- Copy Media URL Function ---
+        function copyMediaUrl() {
+            navigator.clipboard.writeText(currentAdUrl);
+            alert("Media URL copied to clipboard!");
         }
 
         function applyPositionStyle(el, pos) {
