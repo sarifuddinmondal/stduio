@@ -3,151 +3,205 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ckart India | Ad Studio</title>
+    <title>Ckart India | Ad Studio Pro</title>
+    
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://cdn.jsdelivr.net/npm/interactjs/dist/interact.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&family=JetBrains+Mono&display=swap" rel="stylesheet">
 
     <style>
-        body { background-color: #0f172a; color: #f8fafc; font-family: 'Inter', sans-serif; }
-        .cell-card { transition: all 0.3s ease; border-left: 4px solid transparent; }
-        .cell-card:hover { border-left-color: #6366f1; transform: translateX(5px); background: #1e293b; }
+        :root {
+            --bg-dark: #020617;
+            --panel-bg: #0f172a;
+            --accent: #6366f1;
+        }
+
+        body { 
+            background-color: var(--bg-dark); 
+            color: #f8fafc; 
+            font-family: 'Inter', sans-serif; 
+            overflow: hidden;
+        }
+
+        /* Scrollbar Styling */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #0f172a; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
+
+        .cell-card { 
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); 
+            border-left: 4px solid transparent; 
+        }
+        .cell-card:hover { 
+            border-left-color: var(--accent); 
+            transform: translateX(4px); 
+            background: #1e293b; 
+        }
+
         .ad-preview-container {
-            background: #1e293b;
-            border: 2px solid #6366f1;
+            background: #000;
+            border: 1px solid #334155;
             position: relative;
             overflow: hidden;
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
+            box-shadow: 0 0 50px rgba(0,0,0,0.5);
+            transition: all 0.3s ease;
         }
+
         #preview-outer-container {
-            background-image: radial-gradient(#334155 1px, transparent 1px);
-            background-size: 30px 30px;
+            background-image: radial-gradient(#1e293b 1.5px, transparent 1.5px);
+            background-size: 24px 24px;
+            transition: all 0.5s ease;
         }
-        /* ইঞ্চি গ্রিড পেপার ইফেক্ট */
+
         .inch-grid {
             position: absolute;
-            width: 100%;
-            height: 100%;
-            background-image: linear-gradient(#ffffff05 1px, transparent 1px), linear-gradient(90deg, #ffffff05 1px, transparent 1px);
-            background-size: 96px 96px; /* 1 inch = 96px approximate */
+            inset: 0;
+            background-image: 
+                linear-gradient(#ffffff03 1px, transparent 1px), 
+                linear-gradient(90deg, #ffffff03 1px, transparent 1px);
+            background-size: 96px 96px;
             pointer-events: none;
+        }
+
+        /* View State Classes */
+        .mode-live #workspace-pane { display: none; }
+        .mode-live #main-content { grid-template-columns: 1fr; }
+        .mode-live .inch-grid { opacity: 0; }
+        
+        .active-tab {
+            background-color: var(--accent) !important;
+            color: white !important;
+        }
+
+        .code-editor {
+            font-family: 'JetBrains Mono', monospace;
+            background: #000;
+            color: #10b981;
+            scrollbar-width: thin;
         }
     </style>
 </head>
 <body class="h-screen flex flex-col">
 
-    <header class="h-14 border-b border-slate-800 flex items-center justify-between px-6 bg-slate-900 shadow-lg z-50">
-        <div class="flex items-center gap-4">
-            <h1 class="text-lg font-bold text-indigo-400 tracking-tighter">CKART STUDIO</h1>
-            <div class="h-6 w-[1px] bg-slate-700"></div>
-            <div class="flex bg-slate-800 rounded-lg p-1 gap-1">
-                <button id="workplace-toggle" class="px-4 py-1 rounded-md text-sm font-medium transition bg-indigo-600 text-white">Editor</button>
-                <button id="liveview-toggle" class="px-4 py-1 rounded-md text-sm font-medium transition text-slate-400 hover:text-white">Live View</button>
+    <header class="h-16 border-b border-slate-800 flex items-center justify-between px-8 bg-slate-900/50 backdrop-blur-xl z-50">
+        <div class="flex items-center gap-6">
+            <div class="flex items-center gap-2">
+                <div class="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center">
+                    <i data-lucide="layout" class="w-5 h-5 text-white"></i>
+                </div>
+                <h1 class="text-xl font-black text-white tracking-tight uppercase">Ckart <span class="text-indigo-500">Studio</span></h1>
             </div>
+            
+            <nav class="flex bg-slate-800/50 rounded-xl p-1.5 border border-slate-700/50">
+                <button id="btn-editor" class="active-tab px-6 py-1.5 rounded-lg text-sm font-bold transition-all flex items-center gap-2">
+                    <i data-lucide="edit-3" class="w-4 h-4"></i> Editor
+                </button>
+                <button id="btn-live" class="px-6 py-1.5 rounded-lg text-sm font-medium text-slate-400 hover:text-white transition-all flex items-center gap-2">
+                    <i data-lucide="eye" class="w-4 h-4"></i> Live View
+                </button>
+            </nav>
         </div>
 
-        <div class="flex items-center gap-3">
-            <div class="text-[10px] text-slate-500 font-mono hidden md:block">SCALE: 1 INCH = 96PX</div>
-            <button id="save-btn" class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-1.5 rounded-md text-sm font-bold transition flex items-center gap-2 shadow-lg shadow-indigo-500/20">
-                <i data-lucide="save" class="w-4 h-4"></i> SAVE PROJECT
+        <div class="flex items-center gap-4">
+            <div id="status-indicator" class="flex items-center gap-2 px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 rounded-full">
+                <div class="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
+                <span class="text-[10px] font-bold text-emerald-500 uppercase">System Ready</span>
+            </div>
+            <button id="save-btn" class="bg-indigo-600 hover:bg-indigo-500 active:scale-95 text-white px-8 py-2 rounded-xl text-sm font-black transition-all flex items-center gap-2 shadow-lg shadow-indigo-500/20">
+                <i data-lucide="cloud-upload" class="w-4 h-4"></i> DEPLOY PROJECT
             </button>
         </div>
     </header>
 
-    <main id="main-content" class="flex-1 grid grid-cols-2 overflow-hidden">
+    <main id="main-content" class="flex-1 grid grid-cols-[450px_1fr] overflow-hidden">
         
-        <section id="workspace-pane" class="border-r border-slate-800 flex flex-col bg-slate-950 overflow-y-auto">
-            <div class="p-4 border-b border-slate-800 flex gap-2 sticky top-0 bg-slate-950 z-10">
-                <button id="add-html-btn" class="bg-slate-800 hover:bg-slate-700 p-2 rounded-lg" title="Add HTML Code">
-                    <i data-lucide="code-2" class="text-indigo-400"></i>
-                </button>
-                <label class="bg-slate-800 hover:bg-slate-700 p-2 rounded-lg cursor-pointer">
-                    <i data-lucide="image" class="text-green-400"></i>
-                    <input type="file" id="image-upload-input" accept="image/*" class="hidden">
-                </label>
-                <label class="bg-slate-800 hover:bg-slate-700 p-2 rounded-lg cursor-pointer">
-                    <i data-lucide="video" class="text-red-400"></i>
-                    <input type="file" id="video-upload-input" accept="video/*" class="hidden">
-                </label>
+        <section id="workspace-pane" class="border-r border-slate-800 flex flex-col bg-slate-950 overflow-hidden">
+            <div class="p-4 border-b border-slate-800 flex justify-between items-center bg-slate-900/20">
+                <span class="text-xs font-bold text-slate-500 uppercase tracking-widest">Asset Manager</span>
+                <div class="flex gap-2">
+                    <button id="add-html-btn" class="bg-indigo-500/10 hover:bg-indigo-500/20 p-2 rounded-lg border border-indigo-500/20 transition group">
+                        <i data-lucide="code" class="text-indigo-400 group-hover:scale-110 transition"></i>
+                    </button>
+                    <label class="bg-emerald-500/10 hover:bg-emerald-500/20 p-2 rounded-lg border border-emerald-500/20 cursor-pointer transition group">
+                        <i data-lucide="image-plus" class="text-emerald-400 group-hover:scale-110 transition"></i>
+                        <input type="file" id="image-upload-input" accept="image/*" class="hidden">
+                    </label>
+                </div>
             </div>
 
-            <div class="p-6 space-y-6">
-                <div class="grid grid-cols-2 gap-4">
-                    <div class="col-span-2">
-                        <label class="text-[10px] text-slate-500 uppercase font-bold tracking-widest">Ad Project Name</label>
-                        <input type="text" id="ad_name" placeholder="Summer Campaign..." class="w-full bg-slate-900 border border-slate-800 rounded-lg p-2.5 mt-1 outline-none focus:border-indigo-500 transition">
-                    </div>
-
+            <div class="flex-1 overflow-y-auto p-6 space-y-8">
+                <div class="space-y-4">
                     <div>
-                        <label class="text-[10px] text-slate-500 uppercase font-bold tracking-widest">Serial Number</label>
-                        <input type="number" id="serial_number" placeholder="e.g. 101" class="w-full bg-slate-900 border border-slate-800 rounded-lg p-2.5 mt-1 outline-none focus:border-indigo-500">
+                        <label class="text-[10px] text-slate-500 uppercase font-bold tracking-widest mb-2 block">Campaign Details</label>
+                        <input type="text" id="ad_name" placeholder="Campaign Name..." class="w-full bg-slate-900 border border-slate-800 rounded-xl p-3 outline-none focus:ring-2 ring-indigo-500/50 transition">
                     </div>
-
-                    <div>
-                        <label class="text-[10px] text-slate-500 uppercase font-bold tracking-widest">Duration (Sec)</label>
-                        <input type="number" id="ad_duration" value="5" class="w-full bg-slate-900 border border-slate-800 rounded-lg p-2.5 mt-1 outline-none focus:border-indigo-500">
-                    </div>
-
-                    <div class="col-span-2">
-                        <label class="text-[10px] text-slate-500 uppercase font-bold tracking-widest">Frame Size (Inches)</label>
-                        <div class="flex items-center gap-3 mt-1">
-                            <div class="flex-1 flex items-center bg-slate-900 border border-slate-800 rounded-lg px-3">
-                                <input type="number" id="ad_width_in" placeholder="4" class="w-full bg-transparent py-2.5 outline-none text-center">
-                                <span class="text-slate-600 text-xs font-bold ml-2">W (in)</span>
-                            </div>
-                            <i data-lucide="x" class="text-slate-700 w-4 h-4"></i>
-                            <div class="flex-1 flex items-center bg-slate-900 border border-slate-800 rounded-lg px-3">
-                                <input type="number" id="ad_height_in" placeholder="6" class="w-full bg-transparent py-2.5 outline-none text-center">
-                                <span class="text-slate-600 text-xs font-bold ml-2">H (in)</span>
-                            </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="text-[10px] text-slate-500 uppercase font-bold mb-2 block">Serial No</label>
+                            <input type="number" id="serial_number" placeholder="101" class="w-full bg-slate-900 border border-slate-800 rounded-xl p-3 outline-none focus:border-indigo-500">
                         </div>
-                    </div>
-
-                    <div>
-                        <label class="text-[10px] text-slate-500 uppercase font-bold tracking-widest">Position</label>
-                        <select id="ad_position" class="w-full bg-slate-900 border border-slate-800 rounded-lg p-2.5 mt-1 outline-none appearance-none cursor-pointer">
-                            <option value="center">Center</option>
-                            <option value="top_center">Top Center</option>
-                            <option value="bottom_center">Bottom Center</option>
-                            <option value="bottom_right">Bottom Right</option>
-                        </select>
-                    </div>
-
-                    <div>
-                        <label class="text-[10px] text-slate-500 uppercase font-bold tracking-widest">Target Pincodes</label>
-                        <input type="text" id="pincodes" placeholder="741401..." class="w-full bg-slate-900 border border-slate-800 rounded-lg p-2.5 mt-1 outline-none focus:border-indigo-500">
+                        <div>
+                            <label class="text-[10px] text-slate-500 uppercase font-bold mb-2 block">Duration (Sec)</label>
+                            <input type="number" id="ad_duration" value="5" class="w-full bg-slate-900 border border-slate-800 rounded-xl p-3 outline-none focus:border-indigo-500">
+                        </div>
                     </div>
                 </div>
 
-                <div class="pt-4 border-t border-slate-800">
-                    <label class="text-[10px] text-slate-500 uppercase font-bold tracking-widest">Layers / Slideshow Content</label>
-                    <div id="cells-wrapper" class="flex flex-col gap-3 mt-3"></div>
-                    <div id="workspace-placeholder" class="text-center py-12 border-2 border-dashed border-slate-800 rounded-2xl text-slate-700 bg-slate-900/30">
-                        <i data-lucide="component" class="mx-auto w-8 h-8 mb-2 opacity-20"></i>
-                        <p class="text-xs uppercase tracking-tighter">Add media or code to start</p>
+                <div class="space-y-4 pt-6 border-t border-slate-900">
+                    <label class="text-[10px] text-slate-500 uppercase font-bold tracking-widest block">Canvas Configuration</label>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="relative">
+                            <input type="number" id="ad_width_in" value="4" class="w-full bg-slate-900 border border-slate-800 rounded-xl p-3 pl-10 outline-none">
+                            <span class="absolute left-3 top-3.5 text-slate-600 text-xs font-bold">W</span>
+                        </div>
+                        <div class="relative">
+                            <input type="number" id="ad_height_in" value="6" class="w-full bg-slate-900 border border-slate-800 rounded-xl p-3 pl-10 outline-none">
+                            <span class="absolute left-3 top-3.5 text-slate-600 text-xs font-bold">H</span>
+                        </div>
+                    </div>
+                    <select id="ad_position" class="w-full bg-slate-900 border border-slate-800 rounded-xl p-3 outline-none cursor-pointer hover:bg-slate-800 transition">
+                        <option value="center">Screen Center</option>
+                        <option value="top_center">Top Middle</option>
+                        <option value="bottom_center">Bottom Middle</option>
+                        <option value="bottom_right">Bottom Right Corner</option>
+                    </select>
+                </div>
+
+                <div class="pt-6 border-t border-slate-900">
+                    <div class="flex justify-between items-center mb-4">
+                        <label class="text-[10px] text-slate-500 uppercase font-bold tracking-widest">Active Layers</label>
+                        <span id="layer-count" class="text-[10px] bg-slate-800 px-2 py-0.5 rounded text-slate-400">0 Layers</span>
+                    </div>
+                    <div id="cells-wrapper" class="space-y-3"></div>
+                    <div id="workspace-placeholder" class="text-center py-16 border-2 border-dashed border-slate-800 rounded-3xl bg-slate-900/10">
+                        <div class="w-12 h-12 bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <i data-lucide="layers" class="text-slate-600"></i>
+                        </div>
+                        <p class="text-xs text-slate-500 font-medium px-10">No content layers found. Add HTML or Images to start building.</p>
                     </div>
                 </div>
             </div>
         </section>
 
-        <section id="preview-outer-container" class="relative flex items-center justify-center overflow-hidden bg-slate-900">
+        <section id="preview-outer-container" class="relative flex items-center justify-center overflow-hidden">
             <div class="inch-grid"></div>
             
-            <div id="preview-container" class="relative w-full h-full flex items-center justify-center">
+            <div id="preview-container" class="relative w-full h-full flex items-center justify-center z-10">
                 <div id="ad-container-wrapper" class="relative">
                     </div>
             </div>
-            
-            <div id="liveview-controls" class="absolute bottom-10 flex flex-col items-center gap-4 hidden">
-                <div class="bg-black/80 backdrop-blur-md px-4 py-2 rounded-full border border-slate-700 text-[10px] font-bold text-indigo-400 uppercase tracking-widest">
-                    Manual Layout Mode Enabled
-                </div>
+
+            <div class="absolute bottom-6 left-6 flex items-center gap-3 bg-black/80 backdrop-blur p-2 rounded-lg border border-slate-800 shadow-2xl">
+                <div class="px-2 py-1 bg-indigo-600 rounded text-[10px] font-bold">PRO PREVIEW</div>
+                <div class="text-[10px] text-slate-400 font-mono tracking-widest uppercase">Resolution: 1" = 96px</div>
             </div>
         </section>
     </main>
 
     <script>
+        // Supabase Init
         const _supabaseUrl = "https://vkwxheddyagpjbsrovgh.supabase.co";
         const _supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZrd3hoZWRkeWFncGpic3JvdmdoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUxNDM2NjEsImV4cCI6MjA5MDcxOTY2MX0.KN_JLY2owScvkGVy2inJIkEzW82_Qb2a1cavcRJFzlA";
         const supabaseClient = supabase.createClient(_supabaseUrl, _supabaseKey);
@@ -155,41 +209,67 @@
         let projectCells = [];
         let slideshowInterval = null;
         let currentSlideIndex = 0;
-        const INCH_TO_PX = 96; // 1 inch = 96 pixels approximate for web
+        const INCH_TO_PX = 96;
 
         document.addEventListener('DOMContentLoaded', () => {
             lucide.createIcons();
             
+            // UI Toggle Logic
+            const btnEditor = document.getElementById('btn-editor');
+            const btnLive = document.getElementById('btn-live');
+            const body = document.body;
+
+            btnLive.addEventListener('click', () => {
+                body.classList.add('mode-live');
+                btnLive.classList.add('active-tab');
+                btnEditor.classList.remove('active-tab');
+                btnEditor.classList.add('text-slate-400');
+            });
+
+            btnEditor.addEventListener('click', () => {
+                body.classList.remove('mode-live');
+                btnEditor.classList.add('active-tab');
+                btnLive.classList.remove('active-tab');
+                btnLive.classList.add('text-slate-400');
+            });
+
+            // Workspace Renderer
             const renderWorkspaceCells = () => {
                 const placeholder = document.getElementById('workspace-placeholder');
                 const cellsWrapper = document.getElementById('cells-wrapper');
+                const layerCount = document.getElementById('layer-count');
+                
                 placeholder.style.display = projectCells.length > 0 ? 'none' : 'block';
+                layerCount.textContent = `${projectCells.length} Layers`;
                 cellsWrapper.innerHTML = '';
 
                 projectCells.forEach((cell, index) => {
                     const card = document.createElement('div');
-                    card.className = "bg-slate-900 border border-slate-800 p-4 rounded-xl cell-card flex flex-col gap-3";
+                    card.className = "bg-slate-900 border border-slate-800 p-4 rounded-2xl cell-card space-y-3";
                     
-                    let inputHtml = cell.type === 'html' 
-                        ? `<textarea class="w-full h-24 bg-black text-green-500 p-3 text-xs font-mono rounded-lg border border-slate-800 outline-none cell-content-input" data-id="${cell.id}">${cell.content}</textarea>`
-                        : `<div class="flex items-center gap-3 bg-black/40 p-2 rounded-lg border border-slate-800">
-                             <div class="w-10 h-10 bg-slate-800 rounded overflow-hidden flex items-center justify-center">
-                                ${cell.type === 'image' ? `<img src="${cell.content}" class="w-full h-full object-cover">` : `<i data-lucide="video" class="w-4 h-4"></i>`}
+                    let contentUI = cell.type === 'html' 
+                        ? `<textarea class="w-full h-32 code-editor p-4 text-xs rounded-xl border border-slate-800 outline-none cell-content-input" data-id="${cell.id}">${cell.content}</textarea>`
+                        : `<div class="flex items-center gap-4 bg-black/40 p-3 rounded-xl border border-slate-800">
+                             <div class="w-12 h-12 bg-slate-800 rounded-lg overflow-hidden flex-shrink-0">
+                                <img src="${cell.content}" class="w-full h-full object-cover">
                              </div>
-                             <span class="text-xs text-slate-400 truncate flex-1">${cell.name}</span>
+                             <div class="flex-1 overflow-hidden">
+                                <p class="text-xs font-bold text-slate-300 truncate">${cell.name}</p>
+                                <p class="text-[10px] text-slate-500 uppercase mt-1">Image Asset</p>
+                             </div>
                            </div>`;
 
                     card.innerHTML = `
                         <div class="flex justify-between items-center">
-                            <div class="flex items-center gap-2">
-                                <span class="w-5 h-5 flex items-center justify-center bg-indigo-500 text-white text-[10px] font-bold rounded-full">${index + 1}</span>
-                                <span class="text-[10px] font-bold uppercase text-slate-500 tracking-widest">${cell.type} Layer</span>
+                            <div class="flex items-center gap-3">
+                                <div class="w-6 h-6 flex items-center justify-center bg-slate-800 text-indigo-400 text-[10px] font-black rounded-lg border border-slate-700">${index + 1}</div>
+                                <span class="text-[10px] font-bold uppercase text-slate-400 tracking-widest">${cell.type}</span>
                             </div>
                             <button class="text-slate-600 hover:text-red-500 transition remove-cell-btn" data-id="${cell.id}">
-                                <i data-lucide="trash-2" class="w-4 h-4"></i>
+                                <i data-lucide="x-circle" class="w-4 h-4"></i>
                             </button>
                         </div>
-                        ${inputHtml}
+                        ${contentUI}
                     `;
                     cellsWrapper.appendChild(card);
                 });
@@ -197,71 +277,81 @@
                 updatePreview();
             };
 
-            const addCell = (type, content, file = null, name = '') => {
-                projectCells.push({ id: `cell_${Date.now()}`, type, name: name || `${type} Layer`, content, file });
-                renderWorkspaceCells();
-            };
-
             const updatePreview = () => {
                 const wrapper = document.getElementById('ad-container-wrapper');
                 const wIn = parseFloat(document.getElementById('ad_width_in').value) || 4;
-                const hIn = parseFloat(document.getElementById('ad_height_in').value) || 4;
+                const hIn = parseFloat(document.getElementById('ad_height_in').value) || 6;
                 const pos = document.getElementById('ad_position').value;
 
                 wrapper.innerHTML = '';
                 const adBox = document.createElement('div');
                 adBox.className = "ad-preview-container absolute";
-                
-                // Convert Inch to PX for preview scale
                 adBox.style.width = (wIn * INCH_TO_PX) + 'px';
                 adBox.style.height = (hIn * INCH_TO_PX) + 'px';
 
-                // Position styling
-                if(pos === 'center') { adBox.style.top = '50%'; adBox.style.left = '50%'; adBox.style.transform = 'translate(-50%, -50%)'; }
-                else if(pos === 'top_center') { adBox.style.top = '50px'; adBox.style.left = '50%'; adBox.style.transform = 'translateX(-50%)'; }
-                else if(pos === 'bottom_center') { adBox.style.bottom = '50px'; adBox.style.left = '50%'; adBox.style.transform = 'translateX(-50%)'; }
-                else if(pos === 'bottom_right') { adBox.style.bottom = '50px'; adBox.style.right = '50px'; }
+                // Positioning Logic
+                if(pos === 'center') {
+                    adBox.style.top = '50%'; adBox.style.left = '50%';
+                    adBox.style.transform = 'translate(-50%, -50%)';
+                } else if(pos === 'top_center') {
+                    adBox.style.top = '40px'; adBox.style.left = '50%';
+                    adBox.style.transform = 'translateX(-50%)';
+                } else if(pos === 'bottom_center') {
+                    adBox.style.bottom = '40px'; adBox.style.left = '50%';
+                    adBox.style.transform = 'translateX(-50%)';
+                } else if(pos === 'bottom_right') {
+                    adBox.style.bottom = '40px'; adBox.style.right = '40px';
+                }
 
                 wrapper.appendChild(adBox);
 
                 if (slideshowInterval) clearInterval(slideshowInterval);
-                const renderCell = (idx) => {
+                
+                const renderCellContent = (idx) => {
                     const cell = projectCells[idx];
                     if (!cell) return;
                     adBox.innerHTML = '';
-                    if (cell.type === 'html') adBox.innerHTML = cell.content;
-                    else if (cell.type === 'image') adBox.innerHTML = `<img src="${cell.content}" class="w-full h-full object-cover">`;
-                    else if (cell.type === 'video') adBox.innerHTML = `<video src="${cell.content}" autoplay muted loop class="w-full h-full object-cover"></video>`;
+                    if (cell.type === 'html') {
+                        adBox.innerHTML = cell.content;
+                    } else {
+                        adBox.innerHTML = `<img src="${cell.content}" class="w-full h-full object-cover">`;
+                    }
                 };
 
                 if (projectCells.length > 0) {
                     currentSlideIndex = 0;
-                    renderCell(0);
+                    renderCellContent(0);
                     if (projectCells.length > 1) {
                         const dur = (parseFloat(document.getElementById('ad_duration').value) || 5) * 1000;
                         slideshowInterval = setInterval(() => {
                             currentSlideIndex = (currentSlideIndex + 1) % projectCells.length;
-                            renderCell(currentSlideIndex);
+                            renderCellContent(currentSlideIndex);
                         }, dur);
                     }
                 }
             };
 
             // Event Listeners
-            document.getElementById('add-html-btn').addEventListener('click', () => addCell('html', '<div style="background:indigo; height:100%; display:flex; align-items:center; justify-content:center; color:white; font-weight:bold;">YOUR CODE</div>'));
-            
+            document.getElementById('add-html-btn').addEventListener('click', () => {
+                projectCells.push({ 
+                    id: `cell_${Date.now()}`, 
+                    type: 'html', 
+                    name: 'HTML Layer', 
+                    content: '<div style="background:linear-gradient(45deg, #4f46e5, #9333ea); height:100%; display:flex; align-items:center; justify-content:center; color:white; font-family:sans-serif; font-weight:bold; font-size:24px;">NEW AD CONTENT</div>' 
+                });
+                renderWorkspaceCells();
+            });
+
             document.getElementById('image-upload-input').addEventListener('change', (e) => {
                 const file = e.target.files[0];
                 if (!file) return;
                 const reader = new FileReader();
-                reader.onload = (ev) => addCell('image', ev.target.result, file, file.name);
+                reader.onload = (ev) => {
+                    projectCells.push({ id: `cell_${Date.now()}`, type: 'image', name: file.name, content: ev.target.result, file: file });
+                    renderWorkspaceCells();
+                };
                 reader.readAsDataURL(file);
             });
-
-            document.getElementById('ad_width_in').addEventListener('input', updatePreview);
-            document.getElementById('ad_height_in').addEventListener('input', updatePreview);
-            document.getElementById('ad_position').addEventListener('change', updatePreview);
-            document.getElementById('ad_duration').addEventListener('input', updatePreview);
 
             document.getElementById('cells-wrapper').addEventListener('input', (e) => {
                 if (e.target.classList.contains('cell-content-input')) {
@@ -278,58 +368,59 @@
                 }
             });
 
-            // Save Function
+            ['ad_width_in', 'ad_height_in', 'ad_duration'].forEach(id => {
+                document.getElementById(id).addEventListener('input', updatePreview);
+            });
+            document.getElementById('ad_position').addEventListener('change', updatePreview);
+
+            // Deployment Engine
             document.getElementById('save-btn').addEventListener('click', async () => {
                 const btn = document.getElementById('save-btn');
                 const name = document.getElementById('ad_name').value;
                 const s_num = document.getElementById('serial_number').value;
 
                 if (!name || !s_num) {
-                    alert("Please fill Name and Serial Number!");
+                    alert("⚠️ Campaign Name & Serial Number required!");
                     return;
                 }
 
                 btn.disabled = true;
-                btn.innerHTML = "Uploading Media...";
+                btn.innerHTML = `<span class="animate-spin mr-2">◌</span> UPLOADING...`;
 
                 try {
-                    // 1. Media Upload
+                    // Upload Assets to Storage
                     for (let cell of projectCells) {
                         if (cell.file) {
-                            const fileName = `media_${Date.now()}_${cell.name.replace(/\s+/g, '_')}`;
-                            const { data, error } = await supabaseClient.storage.from('ad-media').upload(fileName, cell.file);
+                            const ext = cell.file.name.split('.').pop();
+                            const path = `ads/${Date.now()}_${Math.random().toString(36).substring(7)}.${ext}`;
+                            const { data, error } = await supabaseClient.storage.from('ad-media').upload(path, cell.file);
                             if (error) throw error;
-                            const { data: publicUrl } = supabaseClient.storage.from('ad-media').getPublicUrl(fileName);
-                            cell.content = publicUrl.publicUrl;
-                            delete cell.file; // Cleanup
+                            const { data: link } = supabaseClient.storage.from('ad-media').getPublicUrl(path);
+                            cell.content = link.publicUrl;
+                            delete cell.file;
                         }
                     }
 
-                    // 2. Database Insert
-                    const finalSize = `${document.getElementById('ad_width_in').value}x${document.getElementById('ad_height_in').value} inch`;
-                    
-                    const payload = {
+                    // Save Record
+                    const { error } = await supabaseClient.from('ads').insert([{
                         ad_name: name,
                         serial_number: parseInt(s_num),
                         ad_content_html: JSON.stringify(projectCells),
-                        pincodes: document.getElementById('pincodes').value.split(',').map(p => p.trim()),
-                        ad_size: finalSize,
+                        ad_size: `${document.getElementById('ad_width_in').value}x${document.getElementById('ad_height_in').value}`,
                         ad_position: document.getElementById('ad_position').value,
                         ad_duration: parseInt(document.getElementById('ad_duration').value)
-                    };
+                    }]);
 
-                    const { error: dbError } = await supabaseClient.from('ads').insert([payload]);
-                    if (dbError) throw dbError;
-
-                    alert("Success! Ad Saved with Serial: " + s_num);
-                    window.location.reload();
+                    if (error) throw error;
+                    alert("🚀 SUCCESS: Campaign deployed to network!");
+                    location.reload();
 
                 } catch (err) {
-                    alert("System Error: " + err.message);
-                    console.error(err);
+                    alert("❌ ERROR: " + err.message);
                 } finally {
                     btn.disabled = false;
-                    btn.innerHTML = "SAVE PROJECT";
+                    btn.innerHTML = `<i data-lucide="cloud-upload" class="w-4 h-4"></i> DEPLOY PROJECT`;
+                    lucide.createIcons();
                 }
             });
         });
