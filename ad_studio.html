@@ -7,7 +7,6 @@
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
-    <script src="https://cdn.jsdelivr.net/npm/interactjs/dist/interact.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&family=JetBrains+Mono&display=swap" rel="stylesheet">
 
@@ -25,7 +24,6 @@
             overflow: hidden;
         }
 
-        /* Scrollbar Styling */
         ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-track { background: #0f172a; }
         ::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
@@ -65,7 +63,6 @@
             pointer-events: none;
         }
 
-        /* View State Classes */
         .mode-live #workspace-pane { display: none; }
         .mode-live #main-content { grid-template-columns: 1fr; }
         .mode-live .inch-grid { opacity: 0; }
@@ -88,9 +85,9 @@
     <header class="h-16 border-b border-slate-800 flex items-center justify-between px-8 bg-slate-900/50 backdrop-blur-xl z-50">
         <div class="flex items-center gap-6">
             <div class="flex items-center gap-2">
-                <div class="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center">
-                    <i data-lucide="layout" class="w-5 h-5 text-white"></i>
-                </div>
+                <a href="ad_manager.html" class="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center hover:bg-indigo-500 transition">
+                    <i data-lucide="arrow-left" class="w-5 h-5 text-white"></i>
+                </a>
                 <h1 class="text-xl font-black text-white tracking-tight uppercase">Ckart <span class="text-indigo-500">Studio</span></h1>
             </div>
             
@@ -107,7 +104,7 @@
         <div class="flex items-center gap-4">
             <div id="status-indicator" class="flex items-center gap-2 px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 rounded-full">
                 <div class="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
-                <span class="text-[10px] font-bold text-emerald-500 uppercase">System Ready</span>
+                <span id="system-status-text" class="text-[10px] font-bold text-emerald-500 uppercase">System Ready</span>
             </div>
             <button id="save-btn" class="bg-indigo-600 hover:bg-indigo-500 active:scale-95 text-white px-8 py-2 rounded-xl text-sm font-black transition-all flex items-center gap-2 shadow-lg shadow-indigo-500/20">
                 <i data-lucide="cloud-upload" class="w-4 h-4"></i> DEPLOY PROJECT
@@ -121,12 +118,16 @@
             <div class="p-4 border-b border-slate-800 flex justify-between items-center bg-slate-900/20">
                 <span class="text-xs font-bold text-slate-500 uppercase tracking-widest">Asset Manager</span>
                 <div class="flex gap-2">
-                    <button id="add-html-btn" class="bg-indigo-500/10 hover:bg-indigo-500/20 p-2 rounded-lg border border-indigo-500/20 transition group">
+                    <button id="add-html-btn" type="button" title="Add HTML Layer" class="bg-indigo-500/10 hover:bg-indigo-500/20 p-2 rounded-lg border border-indigo-500/20 transition group">
                         <i data-lucide="code" class="text-indigo-400 group-hover:scale-110 transition"></i>
                     </button>
-                    <label class="bg-emerald-500/10 hover:bg-emerald-500/20 p-2 rounded-lg border border-emerald-500/20 cursor-pointer transition group">
+                    <label title="Add Image Layer" class="bg-emerald-500/10 hover:bg-emerald-500/20 p-2 rounded-lg border border-emerald-500/20 cursor-pointer transition group">
                         <i data-lucide="image-plus" class="text-emerald-400 group-hover:scale-110 transition"></i>
                         <input type="file" id="image-upload-input" accept="image/*" class="hidden">
+                    </label>
+                    <label title="Add Video Layer" class="bg-orange-500/10 hover:bg-orange-500/20 p-2 rounded-lg border border-orange-500/20 cursor-pointer transition group">
+                        <i data-lucide="video" class="text-orange-400 group-hover:scale-110 transition"></i>
+                        <input type="file" id="video-upload-input" accept="video/*" class="hidden">
                     </label>
                 </div>
             </div>
@@ -135,7 +136,10 @@
                 <div class="space-y-4">
                     <div>
                         <label class="text-[10px] text-slate-500 uppercase font-bold tracking-widest mb-2 block">Campaign Details</label>
-                        <input type="text" id="ad_name" placeholder="Campaign Name..." class="w-full bg-slate-900 border border-slate-800 rounded-xl p-3 outline-none focus:ring-2 ring-indigo-500/50 transition">
+                        <input type="text" id="ad_name" placeholder="Campaign Name..." class="w-full bg-slate-900 border border-slate-800 rounded-xl p-3 outline-none focus:ring-2 ring-indigo-500/50 transition mb-3">
+                        
+                        <label class="text-[10px] text-slate-500 uppercase font-bold tracking-widest mb-2 block">Pincodes (Comma separated)</label>
+                        <input type="text" id="pincodes" placeholder="700001, 700002..." class="w-full bg-slate-900 border border-slate-800 rounded-xl p-3 outline-none focus:ring-2 ring-indigo-500/50 transition">
                     </div>
                     <div class="grid grid-cols-2 gap-4">
                         <div>
@@ -146,6 +150,15 @@
                             <label class="text-[10px] text-slate-500 uppercase font-bold mb-2 block">Duration (Sec)</label>
                             <input type="number" id="ad_duration" value="5" class="w-full bg-slate-900 border border-slate-800 rounded-xl p-3 outline-none focus:border-indigo-500">
                         </div>
+                    </div>
+                    <div>
+                        <label class="text-[10px] text-slate-500 uppercase font-bold mb-2 block">Ad Type</label>
+                        <select id="ad_type" class="w-full bg-slate-900 border border-slate-800 rounded-xl p-3 outline-none cursor-pointer hover:bg-slate-800 transition">
+                            <option value="image">Single Image</option>
+                            <option value="video">Single Video</option>
+                            <option value="html">Custom HTML</option>
+                            <option value="multi" selected>Multi-Asset (Slideshow)</option>
+                        </select>
                     </div>
                 </div>
 
@@ -166,6 +179,7 @@
                         <option value="top_center">Top Middle</option>
                         <option value="bottom_center">Bottom Middle</option>
                         <option value="bottom_right">Bottom Right Corner</option>
+                        <option value="fullscreen">Full Screen Fill</option>
                     </select>
                 </div>
 
@@ -179,7 +193,7 @@
                         <div class="w-12 h-12 bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-4">
                             <i data-lucide="layers" class="text-slate-600"></i>
                         </div>
-                        <p class="text-xs text-slate-500 font-medium px-10">No content layers found. Add HTML or Images to start building.</p>
+                        <p class="text-xs text-slate-500 font-medium px-10">No content layers found. Add HTML, Images, or Videos to start building.</p>
                     </div>
                 </div>
             </div>
@@ -189,8 +203,7 @@
             <div class="inch-grid"></div>
             
             <div id="preview-container" class="relative w-full h-full flex items-center justify-center z-10">
-                <div id="ad-container-wrapper" class="relative">
-                    </div>
+                <div id="ad-container-wrapper" class="relative"></div>
             </div>
 
             <div class="absolute bottom-6 left-6 flex items-center gap-3 bg-black/80 backdrop-blur p-2 rounded-lg border border-slate-800 shadow-2xl">
@@ -201,7 +214,6 @@
     </main>
 
     <script>
-        // Supabase Init
         const _supabaseUrl = "https://vkwxheddyagpjbsrovgh.supabase.co";
         const _supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZrd3hoZWRkeWFncGpic3JvdmdoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUxNDM2NjEsImV4cCI6MjA5MDcxOTY2MX0.KN_JLY2owScvkGVy2inJIkEzW82_Qb2a1cavcRJFzlA";
         const supabaseClient = supabase.createClient(_supabaseUrl, _supabaseKey);
@@ -209,12 +221,19 @@
         let projectCells = [];
         let slideshowInterval = null;
         let currentSlideIndex = 0;
+        let currentAdId = null;
         const INCH_TO_PX = 96;
 
-        document.addEventListener('DOMContentLoaded', () => {
+        document.addEventListener('DOMContentLoaded', async () => {
             lucide.createIcons();
             
-            // UI Toggle Logic
+            const urlParams = new URLSearchParams(window.location.search);
+            currentAdId = urlParams.get('id');
+
+            if (currentAdId) {
+                await loadAdData(currentAdId);
+            }
+
             const btnEditor = document.getElementById('btn-editor');
             const btnLive = document.getElementById('btn-live');
             const body = document.body;
@@ -233,31 +252,88 @@
                 btnLive.classList.add('text-slate-400');
             });
 
-            // Workspace Renderer
+            async function loadAdData(id) {
+                document.getElementById('system-status-text').textContent = "Loading Ad...";
+                const { data, error } = await supabaseClient.from('ads').select('*').eq('id', id).single();
+                
+                if (error) {
+                    console.error("Error loading ad:", error);
+                    document.getElementById('system-status-text').textContent = "Load Error";
+                    return;
+                }
+
+                if (data) {
+                    document.getElementById('ad_name').value = data.ad_name || '';
+                    document.getElementById('pincodes').value = data.pincodes ? (Array.isArray(data.pincodes) ? data.pincodes.join(', ') : data.pincodes) : '';
+                    document.getElementById('serial_number').value = data.serial_number || '';
+                    document.getElementById('ad_duration').value = data.ad_duration || 5;
+                    document.getElementById('ad_type').value = data.ad_type || 'multi';
+                    
+                    const size = data.ad_size ? data.ad_size.split('x') : ['4', '6'];
+                    document.getElementById('ad_width_in').value = size[0];
+                    document.getElementById('ad_height_in').value = size[1];
+                    document.getElementById('ad_position').value = data.ad_position || 'center';
+                    
+                    try {
+                        projectCells = JSON.parse(data.ad_content_html) || [];
+                        projectCells.forEach(c => { if(c.scale === undefined) c.scale = 100; });
+                    } catch(e) {
+                        projectCells = [];
+                    }
+                    renderWorkspaceCells();
+                    
+                    document.getElementById('save-btn').innerHTML = `<i data-lucide="save" class="w-4 h-4"></i> UPDATE CAMPAIGN`;
+                    document.getElementById('system-status-text').textContent = "Editing Mode";
+                    lucide.createIcons();
+                }
+            }
+
             const renderWorkspaceCells = () => {
                 const placeholder = document.getElementById('workspace-placeholder');
                 const cellsWrapper = document.getElementById('cells-wrapper');
                 const layerCount = document.getElementById('layer-count');
                 
-                placeholder.style.display = projectCells.length > 0 ? 'none' : 'block';
-                layerCount.textContent = `${projectCells.length} Layers`;
+                if (placeholder) placeholder.style.display = projectCells.length > 0 ? 'none' : 'block';
+                if (layerCount) layerCount.textContent = `${projectCells.length} Layers`;
                 cellsWrapper.innerHTML = '';
 
                 projectCells.forEach((cell, index) => {
                     const card = document.createElement('div');
                     card.className = "bg-slate-900 border border-slate-800 p-4 rounded-2xl cell-card space-y-3";
                     
-                    let contentUI = cell.type === 'html' 
-                        ? `<textarea class="w-full h-32 code-editor p-4 text-xs rounded-xl border border-slate-800 outline-none cell-content-input" data-id="${cell.id}">${cell.content}</textarea>`
-                        : `<div class="flex items-center gap-4 bg-black/40 p-3 rounded-xl border border-slate-800">
-                             <div class="w-12 h-12 bg-slate-800 rounded-lg overflow-hidden flex-shrink-0">
-                                <img src="${cell.content}" class="w-full h-full object-cover">
-                             </div>
-                             <div class="flex-1 overflow-hidden">
-                                <p class="text-xs font-bold text-slate-300 truncate">${cell.name}</p>
-                                <p class="text-[10px] text-slate-500 uppercase mt-1">Image Asset</p>
-                             </div>
-                           </div>`;
+                    let contentUI = '';
+                    if (cell.type === 'html') {
+                        contentUI = `<textarea class="w-full h-32 code-editor p-4 text-xs rounded-xl border border-slate-800 outline-none cell-content-input" data-id="${cell.id}">${cell.content}</textarea>`;
+                    } else if (cell.type === 'image') {
+                        contentUI = `
+                            <div class="flex items-center gap-4 bg-black/40 p-3 rounded-xl border border-slate-800">
+                                <div class="w-12 h-12 bg-slate-800 rounded-lg overflow-hidden flex-shrink-0">
+                                    <img src="${cell.content}" class="w-full h-full object-cover">
+                                </div>
+                                <div class="flex-1 overflow-hidden">
+                                    <p class="text-xs font-bold text-slate-300 truncate">${cell.name}</p>
+                                    <p class="text-[10px] text-slate-500 uppercase mt-1">Image Asset</p>
+                                </div>
+                            </div>
+                            <div class="space-y-1">
+                                <div class="flex justify-between text-[10px] text-slate-500 uppercase font-bold">
+                                    <span>Zoom / Scale</span>
+                                    <span>${cell.scale || 100}%</span>
+                                </div>
+                                <input type="range" min="10" max="400" value="${cell.scale || 100}" data-id="${cell.id}" class="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer scale-slider">
+                            </div>`;
+                    } else if (cell.type === 'video') {
+                        contentUI = `
+                            <div class="flex items-center gap-4 bg-black/40 p-3 rounded-xl border border-slate-800">
+                                <div class="w-12 h-12 bg-slate-800 rounded-lg overflow-hidden flex-shrink-0 flex items-center justify-center">
+                                    <i data-lucide="video" class="text-indigo-400 w-6 h-6"></i>
+                                </div>
+                                <div class="flex-1 overflow-hidden">
+                                    <p class="text-xs font-bold text-slate-300 truncate">${cell.name}</p>
+                                    <p class="text-[10px] text-slate-500 uppercase mt-1">Video Asset</p>
+                                </div>
+                            </div>`;
+                    }
 
                     card.innerHTML = `
                         <div class="flex justify-between items-center">
@@ -289,7 +365,6 @@
                 adBox.style.width = (wIn * INCH_TO_PX) + 'px';
                 adBox.style.height = (hIn * INCH_TO_PX) + 'px';
 
-                // Positioning Logic
                 if(pos === 'center') {
                     adBox.style.top = '50%'; adBox.style.left = '50%';
                     adBox.style.transform = 'translate(-50%, -50%)';
@@ -301,6 +376,10 @@
                     adBox.style.transform = 'translateX(-50%)';
                 } else if(pos === 'bottom_right') {
                     adBox.style.bottom = '40px'; adBox.style.right = '40px';
+                } else if(pos === 'fullscreen') {
+                    adBox.style.top = '0'; adBox.style.left = '0';
+                    adBox.style.width = '100vw'; adBox.style.height = '100vh';
+                    adBox.style.zIndex = '100';
                 }
 
                 wrapper.appendChild(adBox);
@@ -313,8 +392,11 @@
                     adBox.innerHTML = '';
                     if (cell.type === 'html') {
                         adBox.innerHTML = cell.content;
-                    } else {
-                        adBox.innerHTML = `<img src="${cell.content}" class="w-full h-full object-cover">`;
+                    } else if (cell.type === 'image') {
+                        const scale = (cell.scale || 100) / 100;
+                        adBox.innerHTML = `<img src="${cell.content}" style="transform: scale(${scale});" class="w-full h-full object-cover transition-transform duration-300">`;
+                    } else if (cell.type === 'video') {
+                        adBox.innerHTML = `<video src="${cell.content}" autoplay muted loop playsinline class="w-full h-full object-cover"></video>`;
                     }
                 };
 
@@ -331,23 +413,37 @@
                 }
             };
 
-            // Event Listeners
+            // HTML ADD BUTTON
             document.getElementById('add-html-btn').addEventListener('click', () => {
-                projectCells.push({ 
+                const newCell = { 
                     id: `cell_${Date.now()}`, 
                     type: 'html', 
                     name: 'HTML Layer', 
                     content: '<div style="background:linear-gradient(45deg, #4f46e5, #9333ea); height:100%; display:flex; align-items:center; justify-content:center; color:white; font-family:sans-serif; font-weight:bold; font-size:24px;">NEW AD CONTENT</div>' 
-                });
+                };
+                projectCells.push(newCell);
                 renderWorkspaceCells();
             });
 
+            // IMAGE UPLOAD
             document.getElementById('image-upload-input').addEventListener('change', (e) => {
                 const file = e.target.files[0];
                 if (!file) return;
                 const reader = new FileReader();
                 reader.onload = (ev) => {
-                    projectCells.push({ id: `cell_${Date.now()}`, type: 'image', name: file.name, content: ev.target.result, file: file });
+                    projectCells.push({ id: `cell_${Date.now()}`, type: 'image', name: file.name, content: ev.target.result, file: file, scale: 100 });
+                    renderWorkspaceCells();
+                };
+                reader.readAsDataURL(file);
+            });
+
+            // VIDEO UPLOAD
+            document.getElementById('video-upload-input').addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = (ev) => {
+                    projectCells.push({ id: `cell_${Date.now()}`, type: 'video', name: file.name, content: ev.target.result, file: file });
                     renderWorkspaceCells();
                 };
                 reader.readAsDataURL(file);
@@ -357,6 +453,16 @@
                 if (e.target.classList.contains('cell-content-input')) {
                     const cell = projectCells.find(c => c.id === e.target.dataset.id);
                     if (cell) { cell.content = e.target.value; updatePreview(); }
+                }
+                if (e.target.classList.contains('scale-slider')) {
+                    const cell = projectCells.find(c => c.id === e.target.dataset.id);
+                    if (cell) { 
+                        cell.scale = parseInt(e.target.value); 
+                        if (e.target.previousElementSibling && e.target.previousElementSibling.children[1]) {
+                             e.target.previousElementSibling.children[1].textContent = cell.scale + '%';
+                        }
+                        updatePreview(); 
+                    }
                 }
             });
 
@@ -368,15 +474,15 @@
                 }
             });
 
-            ['ad_width_in', 'ad_height_in', 'ad_duration'].forEach(id => {
+            ['ad_width_in', 'ad_height_in', 'ad_duration', 'ad_type'].forEach(id => {
                 document.getElementById(id).addEventListener('input', updatePreview);
             });
             document.getElementById('ad_position').addEventListener('change', updatePreview);
 
-            // Deployment Engine
             document.getElementById('save-btn').addEventListener('click', async () => {
                 const btn = document.getElementById('save-btn');
                 const name = document.getElementById('ad_name').value;
+                const pins = document.getElementById('pincodes').value;
                 const s_num = document.getElementById('serial_number').value;
 
                 if (!name || !s_num) {
@@ -385,10 +491,9 @@
                 }
 
                 btn.disabled = true;
-                btn.innerHTML = `<span class="animate-spin mr-2">◌</span> UPLOADING...`;
+                btn.innerHTML = `<span class="animate-spin mr-2">◌</span> DEPLOYING...`;
 
                 try {
-                    // Upload Assets to Storage
                     for (let cell of projectCells) {
                         if (cell.file) {
                             const ext = cell.file.name.split('.').pop();
@@ -401,25 +506,43 @@
                         }
                     }
 
-                    // Save Record
-                    const { error } = await supabaseClient.from('ads').insert([{
+                    // Find first media for media_url field
+                    let firstMediaUrl = "";
+                    const mediaCell = projectCells.find(c => c.type === 'image' || c.type === 'video');
+                    if (mediaCell) firstMediaUrl = mediaCell.content;
+
+                    // Parse pincodes into array
+                    const pincodesArray = pins.split(',').map(p => p.trim()).filter(p => p !== "");
+
+                    const payload = {
                         ad_name: name,
+                        pincodes: pincodesArray,
                         serial_number: parseInt(s_num),
                         ad_content_html: JSON.stringify(projectCells),
                         ad_size: `${document.getElementById('ad_width_in').value}x${document.getElementById('ad_height_in').value}`,
                         ad_position: document.getElementById('ad_position').value,
-                        ad_duration: parseInt(document.getElementById('ad_duration').value)
-                    }]);
+                        ad_duration: parseInt(document.getElementById('ad_duration').value),
+                        ad_type: document.getElementById('ad_type').value,
+                        media_url: firstMediaUrl || ""
+                    };
 
-                    if (error) throw error;
-                    alert("🚀 SUCCESS: Campaign deployed to network!");
-                    location.reload();
+                    let result;
+                    if (currentAdId) {
+                        result = await supabaseClient.from('ads').update(payload).eq('id', currentAdId);
+                    } else {
+                        result = await supabaseClient.from('ads').insert([payload]);
+                    }
+
+                    if (result.error) throw result.error;
+                    alert("🚀 SUCCESS: Campaign deployed!");
+                    window.location.href = "ad_manager.html";
 
                 } catch (err) {
                     alert("❌ ERROR: " + err.message);
+                    console.error(err);
                 } finally {
                     btn.disabled = false;
-                    btn.innerHTML = `<i data-lucide="cloud-upload" class="w-4 h-4"></i> DEPLOY PROJECT`;
+                    btn.innerHTML = currentAdId ? `<i data-lucide="save" class="w-4 h-4"></i> UPDATE CAMPAIGN` : `<i data-lucide="cloud-upload" class="w-4 h-4"></i> DEPLOY PROJECT`;
                     lucide.createIcons();
                 }
             });
