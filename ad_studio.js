@@ -1,582 +1,372 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ckart India | Ad Studio</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/interactjs/dist/interact.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-document.addEventListener('DOMContentLoaded', () => {
-            // --- LIVE VIEW DRAG/SAVE ---
-            const liveviewSaveBtn = document.getElementById('liveview-save-btn');
-            let isLiveViewDraggable = false;
-            let lastLiveViewRect = null;
-            const liveviewAddFrameBtn = document.getElementById('liveview-add-frame-btn');
-            let liveViewFrame = null;
-            let frameImage = null;
-    // Add frame overlay in Live View
-    function addFrameToLiveView() {
-        if (liveViewFrame) return; // Only one frame at a time
-        const adContainer = document.querySelector('.ad-preview-container');
-        if (!adContainer) return;
-        // Create frame overlay
-        liveViewFrame = document.createElement('div');
-        liveViewFrame.className = 'absolute border-4 border-yellow-400 rounded-lg bg-transparent z-30 flex items-center justify-center';
-        liveViewFrame.style.top = '40px';
-        liveViewFrame.style.left = '40px';
-        liveViewFrame.style.width = '300px';
-        liveViewFrame.style.height = '200px';
-        liveViewFrame.style.cursor = 'move';
-        liveViewFrame.style.resize = 'both';
-        liveViewFrame.style.overflow = 'hidden';
-        // Add image placeholder inside frame
-        frameImage = document.createElement('img');
-        frameImage.src = '';
-        frameImage.alt = 'Frame Image';
-        frameImage.style.width = '100%';
-        frameImage.style.height = '100%';
-        frameImage.style.objectFit = 'cover';
-        frameImage.style.cursor = 'pointer';
-        frameImage.addEventListener('click', () => {
-            // Open file picker to select image
-            const input = document.createElement('input');
-            input.type = 'file';
-            input.accept = 'image/*';
-            input.onchange = (e) => {
-                const file = e.target.files[0];
-                if (!file) return;
-                const reader = new FileReader();
-                reader.onload = (ev) => {
-                    frameImage.src = ev.target.result;
-                };
-                reader.readAsDataURL(file);
-            };
-            input.click();
-        });
-        liveViewFrame.appendChild(frameImage);
-        adContainer.appendChild(liveViewFrame);
-        // Make frame draggable/resizable
-        interact(liveViewFrame).draggable({
-            listeners: {
-                move (event) {
-                    const target = event.target;
-                    const x = (parseFloat(target.getAttribute('data-x')) || 0) + event.dx;
-                    const y = (parseFloat(target.getAttribute('data-y')) || 0) + event.dy;
-                    target.style.transform = `translate(${x}px, ${y}px)`;
-                    target.setAttribute('data-x', x);
-                    target.setAttribute('data-y', y);
-                }
-            }
-        }).resizable({
-            edges: { left: true, right: true, bottom: true, top: true },
-            listeners: {
-                move (event) {
-                    let { x, y } = event.target.dataset;
-                    x = parseFloat(x) || 0;
-                    y = parseFloat(y) || 0;
-                    let width = event.rect.width;
-                    let height = event.rect.height;
-                    event.target.style.width = width + 'px';
-                    event.target.style.height = height + 'px';
-                    event.target.style.transform = `translate(${x + event.deltaRect.left}px, ${y + event.deltaRect.top}px)`;
-                    event.target.setAttribute('data-x', x + event.deltaRect.left);
-                    event.target.setAttribute('data-y', y + event.deltaRect.top);
-                }
-            },
-            modifiers: [
-                interact.modifiers.restrictEdges({ outer: 'parent' }),
-                interact.modifiers.restrictSize({ min: { width: 100, height: 100 } })
-            ],
-            inertia: true
-        });
-    }
-    // Add Frame button in Live View
-    if (liveviewAddFrameBtn) {
-        liveviewAddFrameBtn.addEventListener('click', addFrameToLiveView);
-    }
-
-            // Enable drag/resize for ad-preview-container in Live View
-            function enableLiveViewDragResize() {
-                setTimeout(() => {
-                    const adPreview = document.querySelector('.ad-preview-container');
-                    if (!adPreview) return;
-                    isLiveViewDraggable = true;
-                    liveviewSaveBtn.classList.remove('hidden');
-                    interact(adPreview).draggable({
-                        listeners: {
-                            move (event) {
-                                const target = event.target;
-                                const x = (parseFloat(target.getAttribute('data-x')) || 0) + event.dx;
-                                const y = (parseFloat(target.getAttribute('data-y')) || 0) + event.dy;
-                                target.style.transform = `translate(${x}px, ${y}px)`;
-                                target.setAttribute('data-x', x);
-                                target.setAttribute('data-y', y);
-                            }
-                        }
-                    }).resizable({
-                        edges: { left: true, right: true, bottom: true, top: true },
-                        listeners: {
-                            move (event) {
-                                let { x, y } = event.target.dataset;
-                                x = parseFloat(x) || 0;
-                                y = parseFloat(y) || 0;
-                                let width = event.rect.width;
-                                let height = event.rect.height;
-                                event.target.style.width = width + 'px';
-                                event.target.style.height = height + 'px';
-                                event.target.style.transform = `translate(${x + event.deltaRect.left}px, ${y + event.deltaRect.top}px)`;
-                                event.target.setAttribute('data-x', x + event.deltaRect.left);
-                                event.target.setAttribute('data-y', y + event.deltaRect.top);
-                            }
-                        },
-                        modifiers: [
-                            interact.modifiers.restrictEdges({ outer: 'parent' }),
-                            interact.modifiers.restrictSize({ min: { width: 100, height: 100 } })
-                        ],
-                        inertia: true
-                    });
-                }, 300);
-            }
-
-            // Save position/size and disable drag/resize
-            liveviewSaveBtn && liveviewSaveBtn.addEventListener('click', () => {
-                const adPreview = document.querySelector('.ad-preview-container');
-                if (!adPreview) return;
-                isLiveViewDraggable = false;
-                liveviewSaveBtn.classList.add('hidden');
-                // Get position and size
-                const rect = adPreview.getBoundingClientRect();
-                lastLiveViewRect = {
-                    width: rect.width,
-                    height: rect.height,
-                    x: adPreview.getAttribute('data-x') || 0,
-                    y: adPreview.getAttribute('data-y') || 0
-                };
-                // Optionally: Save to DB or update UI
-                alert('Position and size saved!');
-                interact(adPreview).unset();
-            });
-        // --- VIEW TOGGLE LOGIC ---
-        const workplaceToggle = document.getElementById('workplace-toggle');
-        const liveviewToggle = document.getElementById('liveview-toggle');
-        const workspacePane = document.getElementById('workspace-pane');
-        const previewOuterContainer = document.getElementById('preview-outer-container');
-        const mainContent = document.getElementById('main-content');
-
-        function setActiveView(view) {
-            if (view === 'workplace') {
-                workspacePane.style.display = '';
-                previewOuterContainer.style.display = '';
-                mainContent.classList.remove('grid-cols-1');
-                mainContent.classList.add('grid-cols-2');
-                workplaceToggle.classList.add('border-indigo-600', 'text-indigo-600');
-                workplaceToggle.classList.remove('border-slate-400', 'text-slate-600');
-                liveviewToggle.classList.remove('border-indigo-600', 'text-indigo-600');
-                liveviewToggle.classList.add('border-slate-400', 'text-slate-600');
-            } else if (view === 'liveview') {
-                workspacePane.style.display = 'none';
-                previewOuterContainer.style.display = '';
-                mainContent.classList.remove('grid-cols-2');
-                mainContent.classList.add('grid-cols-1');
-                workplaceToggle.classList.remove('border-indigo-600', 'text-indigo-600');
-                workplaceToggle.classList.add('border-slate-400', 'text-slate-600');
-                liveviewToggle.classList.add('border-indigo-600', 'text-indigo-600');
-                liveviewToggle.classList.remove('border-slate-400', 'text-slate-600');
-            }
+    <style>
+        body { background-color: #0f172a; color: #f8fafc; }
+        .cell-card { transition: all 0.3s ease; }
+        .cell-card:hover { border-color: #6366f1; transform: translateY(-2px); }
+        .ad-preview-container {
+            background: #1e293b;
+            border: 2px solid #334155;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
         }
-
-        workplaceToggle.addEventListener('click', () => setActiveView('workplace'));
-        liveviewToggle.addEventListener('click', () => setActiveView('liveview'));
-        // Default to workplace view
-        setActiveView('workplace');
-    // Supabase Client
-    const _supabaseUrl = "https://vkwxheddyagpjbsrovgh.supabase.co";
-    const _supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZrd3hoZWRkeWFncGpic3JvdmdoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUxNDM2NjEsImV4cCI6MjA5MDcxOTY2MX0.KN_JLY2owScvkGVy2inJIkEzW82_Qb2a1cavcRJFzlA";
-    const supabaseClient = supabase.createClient(_supabaseUrl, _supabaseKey);
-
-    // --- DOM ELEMENTS ---
-    const adForm = document.getElementById('ad-form');
-    const saveBtn = document.getElementById('save-btn');
-    const cellsWrapper = document.getElementById('cells-wrapper');
-    const workspacePlaceholder = document.getElementById('workspace-placeholder');
-    const addHtmlBtn = document.getElementById('add-html-btn');
-    const imageUploadInput = document.getElementById('image-upload-input');
-    const videoUploadInput = document.getElementById('video-upload-input');
-    const addFrameBtn = document.getElementById('add-frame-btn');
-    const adPresetSelect = document.getElementById('ad_preset');
-    const adPositionSelect = document.getElementById('ad_position');
-    const adWidthInput = document.getElementById('ad_width');
-    const adHeightInput = document.getElementById('ad_height');
-    
-    // Preview Elements
-    const previewDeviceSelect = document.getElementById('preview-device-select');
-    const previewContainer = document.getElementById('preview-container');
-    const adContainerWrapper = document.getElementById('ad-container-wrapper');
-
-    // --- STATE ---
-    let projectCells = [];
-    let cellCounters = { html: 0, image: 0, video: 0, frame: 0 };
-    let slideshowInterval = null;
-    let currentSlideIndex = 0;
-
-
-    // --- FUNCTIONS ---
-
-    const getAdData = () => {
-        return {
-            cells: projectCells.map(cell => ({
-                id: cell.id,
-                type: cell.type,
-                name: cell.name,
-                content: cell.content
-            })),
-            preset: adPresetSelect.value,
-            width: adWidthInput.value,
-            height: adHeightInput.value,
-            position: adPositionSelect.value,
-            duration: document.getElementById('ad_duration').value
-        };
-    };
-
-    const renderWorkspaceCells = () => {
-        if (workspacePlaceholder) {
-            workspacePlaceholder.style.display = projectCells.length > 0 ? 'none' : 'block';
+        #preview-outer-container {
+            background-image: radial-gradient(#334155 1px, transparent 1px);
+            background-size: 20px 20px;
         }
-        cellsWrapper.innerHTML = ''; 
+        textarea::-webkit-scrollbar { width: 5px; }
+        textarea::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
+    </style>
+</head>
+<body class="h-screen flex flex-col">
 
-        projectCells.forEach(cell => {
-            const cellEl = document.createElement('div');
-            cellEl.id = cell.id;
-            
-            if (cell.type === 'frame') {
-                cellEl.className = 'resizable-draggable frame-cell';
-                cellEl.style.width = cell.width + 'px';
-                cellEl.style.height = cell.height + 'px';
-                cellEl.style.transform = `translate(${cell.x}px, ${cell.y}px)`;
-                cellEl.dataset.x = cell.x;
-                cellEl.dataset.y = cell.y;
-            } else {
-                cellEl.className = 'cell-card w-80 h-64 bg-white rounded-xl p-3 flex flex-col shrink-0 border';
-            }
-            
-            let contentHtml = '';
-            if (cell.type === 'html') {
-                contentHtml = `<textarea class="w-full h-full p-2 bg-slate-900 text-green-400 font-mono text-sm rounded-lg outline-none focus:ring-2 focus:ring-indigo-400 resize-none cell-content-input" data-cell-id="${cell.id}">${cell.content}</textarea>`;
-            } else if (cell.type === 'image') {
-                contentHtml = `<img src="${cell.content}" class="w-full h-full object-contain rounded-lg bg-slate-100">`;
-            } else if (cell.type === 'video') {
-                contentHtml = `<video src="${cell.content}" class="w-full h-full object-contain rounded-lg bg-black" controls muted loop></video>`;
-            } else if (cell.type === 'frame') {
-                 contentHtml = `<div class="inner-frame w-full h-full border-2 border-dashed border-gray-400 rounded-lg bg-white bg-opacity-20"></div>`;
-            }
+    <header class="h-14 border-b border-slate-800 flex items-center justify-between px-6 bg-slate-900">
+        <div class="flex items-center gap-4">
+            <h1 class="text-lg font-bold text-indigo-400">CKART STUDIO</h1>
+            <div class="h-6 w-[1px] bg-slate-700"></div>
+            <div class="flex bg-slate-800 rounded-lg p-1 gap-1">
+                <button id="workplace-toggle" class="px-4 py-1 rounded-md text-sm font-medium transition bg-indigo-600 text-white">Editor</button>
+                <button id="liveview-toggle" class="px-4 py-1 rounded-md text-sm font-medium transition text-slate-400 hover:text-white">Live View</button>
+            </div>
+        </div>
 
-            const nameHtml = `<p class="font-bold text-sm text-slate-700">${cell.name}</p>`;
-            const removeBtnHtml = `<button type="button" class="text-red-400 hover:text-red-600 p-1 rounded-full leading-none text-xl remove-cell-btn" data-cell-id="${cell.id}">&times;</button>`;
+        <div class="flex items-center gap-3">
+            <select id="preview-device-select" class="bg-slate-800 border-none rounded-md text-xs px-3 py-1.5 outline-none">
+                <option value="responsive">Responsive</option>
+                <option value="mobile">Mobile (375x667)</option>
+                <option value="desktop">Desktop (1024x768)</option>
+            </select>
+            <button id="save-btn" class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-1.5 rounded-md text-sm font-bold transition flex items-center gap-2">
+                <i data-lucide="save" class="w-4 h-4"></i> SAVE PROJECT
+            </button>
+        </div>
+    </header>
 
-            if(cell.type !== 'frame') {
-                 cellEl.innerHTML = `
-                    <div class="flex justify-between items-center mb-2">
-                       ${nameHtml}
-                       ${removeBtnHtml}
+    <main id="main-content" class="flex-1 grid grid-cols-2 overflow-hidden">
+        
+        <section id="workspace-pane" class="border-r border-slate-800 flex flex-col bg-slate-950">
+            <div class="p-4 border-b border-slate-800 flex gap-2">
+                <button id="add-html-btn" class="bg-slate-800 hover:bg-slate-700 p-2 rounded-lg title="Add HTML Code">
+                    <i data-lucide="code-2" class="text-indigo-400"></i>
+                </button>
+                <label class="bg-slate-800 hover:bg-slate-700 p-2 rounded-lg cursor-pointer">
+                    <i data-lucide="image" class="text-green-400"></i>
+                    <input type="file" id="image-upload-input" accept="image/*" class="hidden">
+                </label>
+                <label class="bg-slate-800 hover:bg-slate-700 p-2 rounded-lg cursor-pointer">
+                    <i data-lucide="video" class="text-red-400"></i>
+                    <input type="file" id="video-upload-input" accept="video/*" class="hidden">
+                </label>
+                <button id="add-frame-btn" class="bg-slate-800 hover:bg-slate-700 p-2 rounded-lg" title="Add Layer Frame">
+                    <i data-lucide="layers" class="text-yellow-400"></i>
+                </button>
+            </div>
+
+            <form id="ad-form" class="p-6 grid grid-cols-2 gap-4 overflow-y-auto">
+                <input type="hidden" id="ad-id">
+                <div class="col-span-2">
+                    <label class="text-xs text-slate-500 uppercase font-bold">Project Name</label>
+                    <input type="text" id="ad_name" placeholder="Summer Sale 2024" class="w-full bg-slate-900 border border-slate-800 rounded-lg p-2 mt-1 outline-none focus:border-indigo-500">
+                </div>
+                <div>
+                    <label class="text-xs text-slate-500 uppercase font-bold">Preset</label>
+                    <select id="ad_preset" class="w-full bg-slate-900 border border-slate-800 rounded-lg p-2 mt-1 outline-none">
+                        <option value="custom">Custom</option>
+                        <option value="center_window">Center Window</option>
+                        <option value="fullscreen">Full Screen</option>
+                        <option value="bottom_banner">Bottom Banner</option>
+                        <option value="bottom_right_popup">Bottom Right Pop</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="text-xs text-slate-500 uppercase font-bold">Position</label>
+                    <select id="ad_position" class="w-full bg-slate-900 border border-slate-800 rounded-lg p-2 mt-1 outline-none">
+                        <option value="center">Center</option>
+                        <option value="top_center">Top Center</option>
+                        <option value="bottom_center">Bottom Center</option>
+                        <option value="bottom_right">Bottom Right</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="text-xs text-slate-500 uppercase font-bold">Size (Width/Height)</label>
+                    <div class="flex gap-2">
+                        <input type="text" id="ad_width" placeholder="70%" class="w-1/2 bg-slate-900 border border-slate-800 rounded-lg p-2 mt-1 outline-none">
+                        <input type="text" id="ad_height" placeholder="60%" class="w-1/2 bg-slate-900 border border-slate-800 rounded-lg p-2 mt-1 outline-none">
                     </div>
-                    <div class="flex-1 min-h-0">${contentHtml}</div>
-                `;
-            } else {
-                cellEl.innerHTML = contentHtml;
-                 cellEl.querySelector('.inner-frame').innerHTML = `
-                    <div class="frame-header p-1 bg-gray-800 bg-opacity-50 flex justify-between items-center cursor-move">
-                         ${nameHtml}
-                         ${removeBtnHtml}
+                </div>
+                <div>
+                    <label class="text-xs text-slate-500 uppercase font-bold">Duration (Sec)</label>
+                    <input type="number" id="ad_duration" value="5" class="w-full bg-slate-900 border border-slate-800 rounded-lg p-2 mt-1 outline-none">
+                </div>
+                <div class="col-span-2">
+                    <label class="text-xs text-slate-500 uppercase font-bold">Target Pincodes</label>
+                    <input type="text" id="pincodes" placeholder="741401, 700001" class="w-full bg-slate-900 border border-slate-800 rounded-lg p-2 mt-1 outline-none">
+                </div>
+                <input type="hidden" id="serial_number">
+
+                <div class="col-span-2 mt-4">
+                    <label class="text-xs text-slate-500 uppercase font-bold">Content Layers</label>
+                    <div id="cells-wrapper" class="flex flex-col gap-3 mt-2"></div>
+                    <div id="workspace-placeholder" class="text-center py-10 border-2 border-dashed border-slate-800 rounded-xl text-slate-600">
+                        No content added. Use toolbar to add HTML, Image or Video.
                     </div>
-                `;
-            }
+                </div>
+            </form>
+        </section>
 
-            cellsWrapper.appendChild(cellEl);
-        });
-        updatePreview(); 
-    };
-
-    const addCell = (type, content, file = null, name = '') => {
-        cellCounters[type]++;
-        const cellId = `cell_${type}_${Date.now()}`;
-        const newCell = {
-            id: cellId,
-            type,
-            name: name || `${type.charAt(0).toUpperCase() + type.slice(1)} ${cellCounters[type]}`,
-            content, 
-            file,    
-        };
-
-        if (type === 'frame') {
-            newCell.x = 50;
-            newCell.y = 50;
-            newCell.width = 200;
-            newCell.height = 150;
-        }
-
-        projectCells.push(newCell);
-        renderWorkspaceCells();
-    };
-
-    const processAndAddFileCell = (file, type) => {
-        if (!file) return;
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            addCell(type, e.target.result, file, file.name);
-        };
-        reader.readAsDataURL(file);
-    };
-
-    const saveProject = async (e) => {
-        e.preventDefault();
-        saveBtn.disabled = true; saveBtn.innerText = "Saving...";
-        try {
-            const adId = document.getElementById('ad-id').value;
+        <section id="preview-outer-container" class="relative flex items-center justify-center p-10 overflow-hidden bg-slate-900">
+            <div id="preview-container" class="relative shadow-2xl transition-all duration-500 bg-black">
+                <div id="ad-container-wrapper" class="w-full h-full relative">
+                    </div>
+            </div>
             
-            const uploadPromises = projectCells.map(async (cell) => {
-                if (cell.file && !cell.content.startsWith('https://')) {
-                    const fileName = `public/${Date.now()}_${cell.file.name.replace(/ /g, '_')}`;
-                    const { error: uploadError } = await supabaseClient.storage.from('ad-media').upload(fileName, cell.file);
-                    if (uploadError) throw uploadError;
-                    const { data: urlData } = supabaseClient.storage.from('ad-media').getPublicUrl(fileName);
-                    cell.content = urlData.publicUrl;
-                }
-                const {file, ...cellToSave} = cell; 
-                return cellToSave;
-            });
-            const finalCells = await Promise.all(uploadPromises);
+            <div id="liveview-controls" class="absolute bottom-6 flex gap-3 hidden">
+                <button id="liveview-add-frame-btn" class="bg-yellow-500 text-black px-4 py-2 rounded-full font-bold shadow-lg flex items-center gap-2">
+                    <i data-lucide="plus"></i> Add Overlay
+                </button>
+                <button id="liveview-save-btn" class="bg-green-600 text-white px-6 py-2 rounded-full font-bold shadow-lg hidden">
+                    <i data-lucide="check"></i> Confirm Position
+                </button>
+            </div>
+        </section>
+    </main>
+
+    <script>
+        // --- 1. Supabase Initialization ---
+        const _supabaseUrl = "https://vkwxheddyagpjbsrovgh.supabase.co";
+        const _supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZrd3hoZWRkeWFncGpic3JvdmdoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUxNDM2NjEsImV4cCI6MjA5MDcxOTY2MX0.KN_JLY2owScvkGVy2inJIkEzW82_Qb2a1cavcRJFzlA";
+        const supabaseClient = supabase.createClient(_supabaseUrl, _supabaseKey);
+
+        // --- 2. State & Variables ---
+        let projectCells = [];
+        let isLiveViewDraggable = false;
+        let slideshowInterval = null;
+        let currentSlideIndex = 0;
+
+        // --- 3. UI Helpers ---
+        document.addEventListener('DOMContentLoaded', () => {
+            lucide.createIcons();
+            const cellsWrapper = document.getElementById('cells-wrapper');
+            const adForm = document.getElementById('ad-form');
+            const saveBtn = document.getElementById('save-btn');
             
-            const adPayload = {
-                ad_name: document.getElementById('ad_name').value,
-                pincodes: document.getElementById('pincodes').value.split(',').map(p => p.trim()).filter(p => p),
-                serial_number: document.getElementById('serial_number').value ? parseInt(document.getElementById('serial_number').value, 10) : null,
-                ad_content_html: finalCells.length > 0 ? JSON.stringify(finalCells) : null,
-                ad_type: finalCells.length > 1 ? 'slideshow' : (finalCells[0] ? finalCells[0].type : 'project'),
-                ad_duration: document.getElementById('ad_duration').value ? parseInt(document.getElementById('ad_duration').value, 10) : null,
-                ad_size: `${adWidthInput.value || ''} ${adHeightInput.value || ''}`.trim(),
-                ad_position: adPositionSelect.value || 'center',
-            };
-            
-            const { data, error } = adId 
-                ? await supabaseClient.from('ads').update(adPayload).eq('id', adId).select() 
-                : await supabaseClient.from('ads').insert([adPayload]).select();
+            // --- 4. Core Logic: Add/Render Cells ---
+            const renderWorkspaceCells = () => {
+                const placeholder = document.getElementById('workspace-placeholder');
+                placeholder.style.display = projectCells.length > 0 ? 'none' : 'block';
+                cellsWrapper.innerHTML = '';
 
-            if (error) throw error;
+                projectCells.forEach(cell => {
+                    const card = document.createElement('div');
+                    card.className = "bg-slate-900 border border-slate-800 p-3 rounded-xl cell-card flex flex-col gap-2";
+                    card.id = cell.id;
 
-            alert(adId ? "Project Updated!" : "Project Saved!");
-            window.location.href = 'ad_manager.html';
+                    let inputHtml = '';
+                    if(cell.type === 'html') {
+                        inputHtml = `<textarea class="w-full h-24 bg-black text-green-500 p-2 text-xs font-mono rounded border border-slate-700 outline-none cell-content-input" data-id="${cell.id}">${cell.content}</textarea>`;
+                    } else {
+                        inputHtml = `<div class="text-xs text-slate-400 italic truncate">${cell.name}</div>`;
+                    }
 
-        } catch (error) {
-            console.error("Save Error:", error);
-            alert("Save Error: " + error.message);
-        } finally {
-            saveBtn.disabled = false; 
-            saveBtn.innerText = document.getElementById('ad-id').value ? 'Update' : 'Save';
-        }
-    };
-    
-    const loadAdForEditing = async (adId) => {
-        const { data: ad, error } = await supabaseClient.from('ads').select('*').eq('id', adId).single();
-        if (error) {
-            alert('Failed to load ad data.'); 
-            window.location.href = 'ad_manager.html'; 
-            return;
-        }
-
-        document.getElementById('ad-id').value = ad.id;
-        document.getElementById('ad_name').value = ad.ad_name;
-        document.getElementById('pincodes').value = (ad.pincodes || []).join(', ');
-        document.getElementById('serial_number').value = ad.serial_number || '';
-        document.getElementById('ad_duration').value = ad.ad_duration || '';
-        adPositionSelect.value = ad.ad_position || 'center';
-
-        if (ad.ad_position === 'bottom_center' && ad.ad_size === '90% 15%') {
-             adPresetSelect.value = 'bottom_banner';
-        } else {
-             adPresetSelect.value = 'custom';
-        }
-
-        if (ad.ad_size) {
-            const sizeParts = ad.ad_size.split(' ');
-            adWidthInput.value = sizeParts[0] || '';
-            adHeightInput.value = sizeParts.length > 1 ? sizeParts[1] : '';
-        }
-
-        if (ad.ad_content_html && ad.ad_content_html.trim().startsWith('[')) {
-            try {
-                projectCells = JSON.parse(ad.ad_content_html);
-                if (!Array.isArray(projectCells)) projectCells = [];
-            } catch(e) { 
-                projectCells = []; 
-            }
-        }
-        renderWorkspaceCells();
-        saveBtn.innerText = 'Update';
-        document.querySelector('h1').innerText = 'Edit Ad';
-    };
-
-    const handlePresetChange = () => {
-        const presets = {
-            'center_window': { position: 'center', width: '70%', height: '60%' },
-            'fullscreen': { position: 'fullscreen', width: '100%', height: '100%' },
-            'bottom_banner': { position: 'bottom_center', width: '90%', height: '15%' },
-            'top_banner': { position: 'top_center', width: '90%', height: '15%' },
-            'bottom_right_popup': { position: 'bottom_right', width: '300px', height: '250px' }
-        };
-        const preset = presets[adPresetSelect.value];
-        if (preset) {
-            adPositionSelect.value = preset.position;
-            adWidthInput.value = preset.width;
-            adHeightInput.value = preset.height;
-        }
-        updatePreview();
-    };
-
-    // --- PREVIEW LOGIC ---
-    const renderPreviewCell = (adContainer, cell) => {
-        adContainer.innerHTML = '';
-        if (!cell) {
-             adContainer.innerHTML = '<p style="color: white; text-align: center; padding-top: 20px;">No content to display.</p>';
-            return;
-        }
-
-        if (cell.type === 'html') {
-            const htmlContainer = document.createElement('div');
-            htmlContainer.className = 'ad-preview-container-html';
-            htmlContainer.innerHTML = cell.content;
-            adContainer.appendChild(htmlContainer);
-        } else if (cell.type === 'image') {
-            const img = document.createElement('img');
-            img.src = cell.content;
-            img.style.width = '100%';
-            img.style.height = '100%';
-            img.style.objectFit = 'contain';
-            adContainer.appendChild(img);
-        } else if (cell.type === 'video') {
-            const video = document.createElement('video');
-            video.src = cell.content;
-            video.autoplay = true;
-            video.muted = true;
-            video.loop = true;
-            video.playsInline = true;
-            video.style.width = '100%';
-            video.style.height = '100%';
-            video.style.objectFit = 'contain';
-            adContainer.appendChild(video);
-        }
-    };
-    
-    const updatePreview = () => {
-        const adData = getAdData();
-        const device = previewDeviceSelect.value;
-
-        // Reset and apply device styles
-        previewContainer.style.cssText = '';
-        if (device === 'mobile') {
-            previewContainer.style.width = '375px';
-            previewContainer.style.height = '667px';
-        } else if (device === 'desktop') {
-            previewContainer.style.width = '1024px';
-            previewContainer.style.height = '768px';
-        } else { // Responsive
-            previewContainer.style.width = '100%';
-            previewContainer.style.height = '100%';
-        }
-
-        adContainerWrapper.innerHTML = '';
-        const adContainer = document.createElement('div');
-        adContainer.className = 'ad-preview-container';
-        adContainer.style.width = adData.width || '100%';
-        adContainer.style.height = adData.height || '100%';
-
-        // This is a simplified positioning logic.
-        // For a full implementation, you'd mirror the live display logic more closely.
-        adContainerWrapper.style.display = 'flex';
-        if (adData.position.includes('top')) adContainerWrapper.style.alignItems = 'flex-start';
-        else if (adData.position.includes('bottom')) adContainerWrapper.style.alignItems = 'flex-end';
-        else adContainerWrapper.style.alignItems = 'center';
-
-        if (adData.position.includes('left')) adContainerWrapper.style.justifyContent = 'flex-start';
-        else if (adData.position.includes('right')) adContainerWrapper.style.justifyContent = 'flex-end';
-        else adContainerWrapper.style.justifyContent = 'center';
-
-        adContainerWrapper.appendChild(adContainer);
-        // Show drag/resize only in Live View mode
-        if (typeof setActiveView === 'function' && isLiveViewDraggable) {
-            enableLiveViewDragResize();
-        }
-        // Reset frame overlay if switching content
-        liveViewFrame = null;
-
-        // Slideshow logic
-        if (slideshowInterval) {
-            clearInterval(slideshowInterval);
-        }
-
-        const showNextCell = () => {
-            if (adData.cells && adData.cells.length > 0) {
-                renderPreviewCell(adContainer, adData.cells[currentSlideIndex]);
-                currentSlideIndex = (currentSlideIndex + 1) % adData.cells.length;
-            } else {
-                renderPreviewCell(adContainer, null);
-            }
-        };
-
-        showNextCell(); // Initial cell render
-
-        if (adData.cells && adData.cells.length > 1 && adData.duration) {
-            slideshowInterval = setInterval(showNextCell, adData.duration * 1000);
-        }
-    };
-
-    // --- EVENT LISTENERS ---
-    // Enable drag/resize when switching to Live View
-    if (liveviewToggle && workplaceToggle) {
-        liveviewToggle.addEventListener('click', () => {
-            enableLiveViewDragResize();
-            // Show Add Frame button in Live View
-            if (liveviewAddFrameBtn) liveviewAddFrameBtn.classList.remove('hidden');
-        });
-        workplaceToggle.addEventListener('click', () => {
-            if (liveviewAddFrameBtn) liveviewAddFrameBtn.classList.add('hidden');
-        });
-    }
-    addHtmlBtn.addEventListener('click', () => addCell('html', '<div>\n  \n</div>'));
-    addFrameBtn.addEventListener('click', () => addCell('frame', ''));
-    imageUploadInput.addEventListener('change', (e) => processAndAddFileCell(e.target.files[0], 'image'));
-    videoUploadInput.addEventListener('change', (e) => processAndAddFileCell(e.target.files[0], 'video'));
-    adForm.addEventListener('submit', saveProject);
-    adPresetSelect.addEventListener('change', handlePresetChange);
-    previewDeviceSelect.addEventListener('change', updatePreview);
-    
-    // Add event listeners for input changes that should trigger preview refresh
-    ['ad_name', 'pincodes', 'serial_number', 'ad_duration', 'ad_width', 'ad_height'].forEach(id => {
-        document.getElementById(id).addEventListener('input', updatePreview);
-    });
-    adPositionSelect.addEventListener('change', updatePreview);
-
-    cellsWrapper.addEventListener('click', (e) => {
-        if (e.target.matches('.remove-cell-btn')) {
-            const cellId = e.target.closest('.resizable-draggable, .cell-card').id;
-            projectCells = projectCells.filter(c => c.id !== cellId);
-            renderWorkspaceCells();
-        }
-    });
-
-    cellsWrapper.addEventListener('input', (e) => {
-        if (e.target.matches('.cell-content-input')) {
-            const cellId = e.target.dataset.cellId;
-            const cell = projectCells.find(c => c.id === cellId);
-            if (cell) {
-                cell.content = e.target.value;
+                    card.innerHTML = `
+                        <div class="flex justify-between items-center">
+                            <span class="text-xs font-bold uppercase text-slate-500">${cell.type} Layer</span>
+                            <button class="text-slate-500 hover:text-red-500 remove-cell-btn" data-id="${cell.id}"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                        </div>
+                        ${inputHtml}
+                    `;
+                    cellsWrapper.appendChild(card);
+                });
+                lucide.createIcons();
                 updatePreview();
-            }
-        }
-    });
+            };
 
+            const addCell = (type, content, file = null, name = '') => {
+                const newCell = {
+                    id: `cell_${Date.now()}`,
+                    type,
+                    name: name || `${type} Layer`,
+                    content,
+                    file
+                };
+                projectCells.push(newCell);
+                renderWorkspaceCells();
+            };
 
-    // --- INITIALIZATION ---
-    (async () => {
-        const urlParams = new URLSearchParams(window.location.search);
-        const adIdToEdit = urlParams.get('edit');
-        if (adIdToEdit) {
-            await loadAdForEditing(adIdToEdit);
-        } else {
+            // --- 5. Preview System ---
+            const updatePreview = () => {
+                const container = document.getElementById('preview-container');
+                const wrapper = document.getElementById('ad-container-wrapper');
+                const device = document.getElementById('preview-device-select').value;
+                const width = document.getElementById('ad_width').value || '100%';
+                const height = document.getElementById('ad_height').value || '100%';
+                const pos = document.getElementById('ad_position').value;
+
+                // Device Simulation
+                if (device === 'mobile') { container.style.width = '375px'; container.style.height = '667px'; }
+                else if (device === 'desktop') { container.style.width = '800px'; container.style.height = '600px'; }
+                else { container.style.width = '100%'; container.style.height = '100%'; }
+
+                wrapper.innerHTML = '';
+                const adBox = document.createElement('div');
+                adBox.className = "ad-preview-container absolute transition-all";
+                adBox.style.width = width;
+                adBox.style.height = height;
+
+                // Positioning Logic
+                if(pos === 'center') { adBox.style.top = '50%'; adBox.style.left = '50%'; adBox.style.transform = 'translate(-50%, -50%)'; }
+                if(pos === 'bottom_center') { adBox.style.bottom = '20px'; adBox.style.left = '50%'; adBox.style.transform = 'translateX(-50%)'; }
+                if(pos === 'bottom_right') { adBox.style.bottom = '20px'; adBox.style.right = '20px'; }
+                if(pos === 'top_center') { adBox.style.top = '20px'; adBox.style.left = '50%'; adBox.style.transform = 'translateX(-50%)'; }
+
+                wrapper.appendChild(adBox);
+
+                // Slideshow Logic
+                if (slideshowInterval) clearInterval(slideshowInterval);
+                const showCell = (index) => {
+                    if (!projectCells[index]) return;
+                    const cell = projectCells[index];
+                    adBox.innerHTML = '';
+                    if (cell.type === 'html') adBox.innerHTML = cell.content;
+                    else if (cell.type === 'image') adBox.innerHTML = `<img src="${cell.content}" class="w-full h-full object-cover">`;
+                    else if (cell.type === 'video') adBox.innerHTML = `<video src="${cell.content}" autoplay muted loop class="w-full h-full object-cover"></video>`;
+                };
+
+                if (projectCells.length > 0) {
+                    currentSlideIndex = 0;
+                    showCell(0);
+                    if (projectCells.length > 1) {
+                        const dur = document.getElementById('ad_duration').value * 1000;
+                        slideshowInterval = setInterval(() => {
+                            currentSlideIndex = (currentSlideIndex + 1) % projectCells.length;
+                            showCell(currentSlideIndex);
+                        }, dur);
+                    }
+                }
+
+                if (isLiveViewDraggable) enableInteract(adBox);
+            };
+
+            // --- 6. Interact.js Integration ---
+            const enableInteract = (el) => {
+                interact(el).draggable({
+                    listeners: { move(event) {
+                        const { target } = event;
+                        const x = (parseFloat(target.getAttribute('data-x')) || 0) + event.dx;
+                        const y = (parseFloat(target.getAttribute('data-y')) || 0) + event.dy;
+                        target.style.transform = `translate(${x}px, ${y}px)`;
+                        target.setAttribute('data-x', x);
+                        target.setAttribute('data-y', y);
+                    }}
+                }).resizable({
+                    edges: { left: true, right: true, bottom: true, top: true },
+                    listeners: { move(event) {
+                        Object.assign(event.target.style, {
+                            width: `${event.rect.width}px`,
+                            height: `${event.rect.height}px`
+                        });
+                    }}
+                });
+            };
+
+            // --- 7. Event Listeners ---
+            document.getElementById('add-html-btn').addEventListener('click', () => addCell('html', '<div style="color:yellow; text-align:center; padding:20px;">NEW AD HERE</div>'));
+            
+            document.getElementById('image-upload-input').addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                const reader = new FileReader();
+                reader.onload = (ev) => addCell('image', ev.target.result, file, file.name);
+                reader.readAsDataURL(file);
+            });
+
+            document.getElementById('liveview-toggle').addEventListener('click', () => {
+                isLiveViewDraggable = true;
+                document.getElementById('workspace-pane').classList.add('hidden');
+                document.getElementById('main-content').classList.replace('grid-cols-2', 'grid-cols-1');
+                document.getElementById('liveview-controls').classList.remove('hidden');
+                document.getElementById('liveview-save-btn').classList.remove('hidden');
+                updatePreview();
+            });
+
+            document.getElementById('workplace-toggle').addEventListener('click', () => {
+                isLiveViewDraggable = false;
+                document.getElementById('workspace-pane').classList.remove('hidden');
+                document.getElementById('main-content').classList.replace('grid-cols-1', 'grid-cols-2');
+                document.getElementById('liveview-controls').classList.add('hidden');
+                updatePreview();
+            });
+
+            cellsWrapper.addEventListener('input', (e) => {
+                if (e.target.classList.contains('cell-content-input')) {
+                    const id = e.target.dataset.id;
+                    const cell = projectCells.find(c => c.id === id);
+                    if (cell) cell.content = e.target.value;
+                    updatePreview();
+                }
+            });
+
+            cellsWrapper.addEventListener('click', (e) => {
+                const btn = e.target.closest('.remove-cell-btn');
+                if (btn) {
+                    projectCells = projectCells.filter(c => c.id !== btn.dataset.id);
+                    renderWorkspaceCells();
+                }
+            });
+
+            // --- 8. Save Logic ---
+            saveBtn.addEventListener('click', async () => {
+                saveBtn.disabled = true;
+                saveBtn.innerHTML = "Processing...";
+                
+                try {
+                    // Media Upload to Supabase Storage
+                    for (let cell of projectCells) {
+                        if (cell.file) {
+                            const fileName = `${Date.now()}_${cell.name}`;
+                            const { data, error } = await supabaseClient.storage
+                                .from('ad-media')
+                                .upload(fileName, cell.file);
+                            if (error) throw error;
+                            const { data: urlData } = supabaseClient.storage.from('ad-media').getPublicUrl(fileName);
+                            cell.content = urlData.publicUrl;
+                            delete cell.file;
+                        }
+                    }
+
+                    const payload = {
+                        ad_name: document.getElementById('ad_name').value,
+                        ad_content_html: JSON.stringify(projectCells),
+                        pincodes: document.getElementById('pincodes').value.split(',').map(p => p.trim()),
+                        ad_size: `${document.getElementById('ad_width').value} ${document.getElementById('ad_height').value}`,
+                        ad_position: document.getElementById('ad_position').value,
+                        ad_duration: parseInt(document.getElementById('ad_duration').value)
+                    };
+
+                    const { error } = await supabaseClient.from('ads').insert([payload]);
+                    if (error) throw error;
+                    alert("Project Saved Successfully!");
+                    window.location.reload();
+                } catch (err) {
+                    alert("Error: " + err.message);
+                } finally {
+                    saveBtn.disabled = false;
+                    saveBtn.innerHTML = "SAVE PROJECT";
+                }
+            });
+
+            // Initial Render
             renderWorkspaceCells();
-        }
-        updatePreview();
-    })();
-});
+        });
+    </script>
+</body>
+</html>
